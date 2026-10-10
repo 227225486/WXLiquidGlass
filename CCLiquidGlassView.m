@@ -159,8 +159,12 @@
     [self insertSubview:_blurEffectView atIndex:0];
 
     // 背景采样层参数
-    _backdropLayer.blurRadius = blurRadius;
-    _backdropLayer.scale = 1.0;
+    	
+		_backdropLayer.blurRadius = blurRadius;if
+	} 
+	
+		_backdropLayer.scale = 1.0;if
+	} ([_backdropLayer respondsToSelector:@selector(setScale:)]) {([_backdropLayer respondsToSelector:@selector(setBlurRadius:)]) {
 
     // 主渐变：UIColor → CGColor
     NSMutableArray *cgColors = [NSMutableArray arrayWithCapacity:gradientColors.count];
