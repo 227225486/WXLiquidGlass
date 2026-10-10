@@ -39,6 +39,7 @@ typedef NS_ENUM(NSUInteger, CCLiquidGlassStyle) {
 // ---------------------------------------------------------------------
 - (instancetype)initWithStyle:(CCLiquidGlassStyle)style;
 - (instancetype)initWithFrame:(CGRect)frame style:(CCLiquidGlassStyle)style NS_DESIGNATED_INITIALIZER;
+- (instancetype)initWithCoder:(NSCoder *)coder NS_DESIGNATED_INITIALIZER;
 
 // 便捷构造：按场景直接创建
 + (instancetype)glassViewForNavigationBar;
