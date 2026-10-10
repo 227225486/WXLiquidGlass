@@ -99,13 +99,20 @@
     [self addSubview:_blurEffectView];
 
     // 2) 背景采样层：CABackdropLayer，作为宿主背后内容的采样容器
-    _backdropLayer = [[CABackdropLayer alloc] init];
-    _backdropLayer.groupName = @"WXLiquidGlass.Backdrop";
-    _backdropLayer.blurRadius = 0;      // 具体值由 configure 写入
-    _backdropLayer.scale = 1.0;
-    _backdropLayer.enabled = YES;
-    _backdropLayer.disablesOversampling = YES;
-    [self.layer addSublayer:_backdropLayer];
+    	_backdropLayer = 
+	
+		_backdropLayer.groupName = @"WXLiquidGlass.Backdrop";if
+	} 
+	
+		_backdropLayer.blurRadius = 0;if
+	} 
+	
+		_backdropLayer.scale = 1.0;if
+	} 
+	
+		_backdropLayer.disablesOversampling = YES;if
+	} 
+	[self.layer addSublayer:_backdropLayer];([_backdropLayer respondsToSelector:@selector(setDisablesOversampling:)]) {([_backdropLayer respondsToSelector:@selector(setScale:)]) {([_backdropLayer respondsToSelector:@selector(setBlurRadius:)]) {([_backdropLayer respondsToSelector:@selector(setGroupName:)]) {[[CABackdropLayer alloc] init];
 
     // 3) 主渐变层：CAGradientLayer，液态渐变底色
     _gradientLayer = [CAGradientLayer layer];
