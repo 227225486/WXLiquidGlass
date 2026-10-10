@@ -10,7 +10,7 @@ export ARCHS = arm64 arm64e
 export THEOS_PACKAGE_SCHEME = rootless
 
 # SDK 与最低系统版本：Xcode 16.x clang，最低 iOS 14.0
-export TARGET = iphone:clang:15.0
+export TARGET = iphone:clang:latest:15.0
 
 # 安装/重载时重启的进程：微信
 INSTALL_TARGET_PROCESSES = WeChat
