@@ -22,8 +22,14 @@ jobs:
           curl -L -o ldid https://github.com/theos/ldid/releases/download/v2.1.5/ldid-linux
           chmod +x ldid
           mv ldid $HOME/theos/bin/
-          # 使用nic自动下载SDK
-          nic install sdk iphoneos
+          # 直接下载theos官方预编译SDK，不使用nic
+          mkdir -p $THEOS/sdks
+          cd $THEOS/sdks
+          curl -L -o sdk.zip https://github.com/theos/sdks/archive/refs/heads/master.zip
+          unzip -q sdk.zip
+          mv sdks-master/* ./
+          rm -rf sdks-master sdk.zip
+          cd $GITHUB_WORKSPACE
           make package
 
       - name: Upload deb artifact
