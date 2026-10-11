@@ -1,41 +1,28 @@
+#import <substrate.h>
 #import <UIKit/UIKit.h>
 
-@interface UIGlassEffect : NSObject
-@property (nonatomic, assign) BOOL isInteractive;
-@end
+// 弱声明，不重复定义类，告诉编译器这个类存在，不会和SDK冲突
+@class UIGlassEffect;
 
-@interface UIGlassView : UIVisualEffectView
-- (instancetype)initWithEffect:(UIGlassEffect *)effect;
-@end
+static void (*origInit)(id, SEL);
 
-%hook UIView
-- (void)didMoveToWindow {
-    %orig;
-    if (!self.window) return;
-
-    NSString *cls = NSStringFromClass([self class]);
-    if([cls containsString:@"Chat"] || [cls containsString:@"Nav"]){
-        if ([self viewWithTag:9999]) return;
-
-        dispatch_async(dispatch_get_main_queue(),^{
-            if(@available(iOS 26.0, *)){
-                Class UIGlassEffectClass = objc_getClass("UIGlassEffect");
-                Class UIGlassViewClass = objc_getClass("UIGlassView");
-                if (!UIGlassEffectClass || !UIGlassViewClass) return;
-
-                UIGlassEffect *glassEffect = [[UIGlassEffectClass alloc] init];
-                glassEffect.isInteractive = YES;
-
-                UIGlassView *glassView = [[UIGlassViewClass alloc] initWithEffect:glassEffect];
-                glassView.tag = 9999;
-                glassView.frame = self.bounds;
-                glassView.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
-                glassView.layer.cornerRadius = 18;
-                glassView.clipsToBounds = YES;
-
-                [self insertSubview:glassView atIndex:0];
-            }
-        });
+void hookViewInit(id self, SEL _cmd) {
+    origInit(self, _cmd);
+    
+    // ⚠️ 版本判断：仅iOS26及以上才运行UIGlassEffect代码
+    if (@available(iOS 26.0, *)) {
+        UIGlassEffect *glass = [[objc_getClass("UIGlassEffect") alloc] init];
+        // 不能直接写 glass.isInteractive = YES; 只读属性，改用KVC
+        [glass setValue:@(YES) forKey:@"isInteractive"];
+        
+        // 把effect添加到视图，这里是示例，你按原有逻辑保留
+        UIVisualEffectView *effectView = [[UIVisualEffectView alloc] initWithEffect:glass];
+        effectView.frame = self.bounds;
+        effectView.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
+        [self addSubview:effectView];
     }
 }
-%end
+
+%ctor {
+    MSHookMessageEx(objc_getClass("UIView"), @selector(init), (IMP)hookViewInit, (IMP *)&origInit);
+}
