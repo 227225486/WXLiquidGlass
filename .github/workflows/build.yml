@@ -24,10 +24,16 @@ jobs:
           brew install git make perl ldid
         shell: bash
 
-      - name: Clone Theos full repo (cache miss)
+      - name: Prepare Theos
         if: steps.cache.outputs.cache-hit != 'true'
         run: |
-          git clone --recursive https://github.com/theos/theos.git $HOME/theos
+          if [ ! -d "$HOME/theos" ]; then
+            git clone --recursive https://github.com/theos/theos.git $HOME/theos
+          else
+            cd $HOME/theos
+            git pull
+            git submodule update --recursive
+          fi
         shell: bash
 
       - name: Debug - 列出Xcode全部iOS SDK
