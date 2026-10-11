@@ -1,0 +1,9 @@
+{
+    entry = {
+        cell = PSLinkCell;
+        label = "液态玻璃";
+        bundle = "Preferences";
+        detail = "PSListController";
+        file = "LiquidGlassHookPreferences";
+    };
+}
