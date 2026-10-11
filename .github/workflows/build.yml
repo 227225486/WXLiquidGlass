@@ -27,13 +27,15 @@ jobs:
           export THEOS="$HOME/theos"
           git clone --recursive https://github.com/theos/theos.git "$THEOS"
 
-      - name: Download iOS SDK
+      - name: Extract SDK from Xcode
         run: |
           export THEOS="$HOME/theos"
           mkdir -p "$THEOS/sdks"
-          curl -L -o /tmp/iPhoneOS16.5.sdk.tar.xz \
-            "https://github.com/xybp888/iOS-SDKs/raw/master/iPhoneOS16.5.sdk.tar.xz"
-          tar -xf /tmp/iPhoneOS16.5.sdk.tar.xz -C "$THEOS/sdks"
+          # 从 GitHub Actions 自带的 Xcode 中提取 SDK
+          SDK_PATH=$(xcrun --sdk iphoneos --show-sdk-path)
+          SDK_VERSION=$(basename "$SDK_PATH" | sed 's/iPhoneOS//;s/\.sdk//')
+          echo "Found SDK: $SDK_VERSION"
+          cp -r "$SDK_PATH" "$THEOS/sdks/iPhoneOS${SDK_VERSION}.sdk"
 
       - name: Set Environment Variables
         run: |
