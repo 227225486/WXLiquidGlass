@@ -8,7 +8,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     env:
-      THEOS: /home/builder/theos
+      THEOS: $HOME/theos
     steps:
       - name: Checkout source
         uses: actions/checkout@v4
@@ -16,44 +16,21 @@ jobs:
       - name: Cache Theos
         uses: actions/cache@v4
         with:
-          path: /home/builder/theos
-          key: ubuntu-theos-v4
+          path: ~/theos
+          key: ubuntu-theos-v5
 
-      - name: Install dependencies & create builder user
+      - name: Install system dependencies
         run: |
           sudo apt update
-          sudo apt install -y bash curl git make perl xz-utils ca-certificates unzip
-          sudo useradd -m builder
-          sudo usermod -aG sudo builder
-          echo "builder ALL=(ALL) NOPASSWD: ALL" | sudo tee /etc/sudoers.d/builder
+          sudo apt install -y bash curl git make perl xz-utils ca-certificates
 
-      - name: Clone Theos (cache miss only)
+      - name: Install Theos (official script, only run when cache miss)
         if: steps.cache.outputs.cache-hit != 'true'
         run: |
-          sudo su - builder -c "
-            git clone --recursive https://ghfast.top/https://github.com/theos/theos.git ~/theos
-          "
-
-      - name: Download Linux iPhone toolchain via ghfast.top
-        if: steps.cache.outputs.cache-hit != 'true'
-        run: |
-          sudo su - builder -c "
-            cd ~/theos
-            mkdir -p toolchain/linux/iphone
-            cd toolchain/linux/iphone
-            curl -L --fail https://ghfast.top/https://github.com/theos/toolchain/releases/download/2024.04/ios-toolchain-linux-2024.04.tar.xz -o toolchain.tar.xz
-            tar -xf toolchain.tar.xz
-            rm toolchain.tar.xz
-          "
+          bash -c "$(curl -fsSL https://raw.githubusercontent.com/theos/theos/master/bin/install-theos)"
 
       - name: Build tweak
-        run: |
-          sudo su - builder -c "
-            export THEOS=/home/builder/theos
-            export PATH=\$THEOS/bin:\$PATH
-            cd $GITHUB_WORKSPACE
-            make package FINALPACKAGE=1
-          "
+        run: make package FINALPACKAGE=1
 
       - name: Upload deb
         uses: actions/upload-artifact@v4
