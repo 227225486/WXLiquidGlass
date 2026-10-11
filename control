@@ -1,0 +1,10 @@
+Package: com.k.liquidglasshook
+Name: LiquidGlassHook
+Version: 1.0
+Architecture: iphoneos-arm
+Description: 给微信底部 TabBar 添加 iOS 液态玻璃毛玻璃效果
+Maintainer: K
+Author: K
+Section: Tweaks
+Depends: mobilesubstrate (>= 0.9.7000)
+Homepage: https://github.com/YOUR_GITHUB_NAME/LiquidGlassHook
