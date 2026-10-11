@@ -59,7 +59,7 @@ static BOOL lg_isiOS26(void) {
 }
 
 // ========================
-// 静态辅助函数（避免 %new 声明问题）
+// 静态辅助函数
 // ========================
 
 static void lg_clearBar(UIView *bar) {
@@ -76,11 +76,11 @@ static void lg_clearBar(UIView *bar) {
 static void lg_applyGlassToTabBar(UITabBar *bar) {
     lg_clearBar(bar);
 
-    // iOS 13+ appearance（使用 NSClassFromString 避免旧 SDK 编译警告）
+    // iOS 13+ appearance
     if (@available(iOS 13.0, *)) {
         id tabBarApClass = NSClassFromString(@"UITabBarAppearance");
         if (tabBarApClass) {
-            id ap = [tabBarApClass alloc] init];
+            id ap = [[tabBarApClass alloc] init];  // 修复：[[ ... ]]
             if ([ap respondsToSelector:@selector(configureWithTransparentBackground)]) {
                 [ap performSelector:@selector(configureWithTransparentBackground)];
             }
@@ -129,7 +129,7 @@ static void lg_applyGlassToNavBar(UINavigationBar *bar) {
     if (@available(iOS 13.0, *)) {
         id navBarApClass = NSClassFromString(@"UINavigationBarAppearance");
         if (navBarApClass) {
-            id ap = [navBarApClass alloc] init];
+            id ap = [[navBarApClass alloc] init];  // 修复：[[ ... ]]
             if ([ap respondsToSelector:@selector(configureWithTransparentBackground)]) {
                 [ap performSelector:@selector(configureWithTransparentBackground)];
             }
