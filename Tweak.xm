@@ -16,11 +16,11 @@ static void lg_loadPrefs(void) {
     NSString *path = ROOT_PATH_NS(@"/var/mobile/Library/Preferences/com.k.liquidglasshook.plist");
     NSDictionary *p = [NSDictionary dictionaryWithContentsOfFile:path] ?: @{};
 
-    lg_cfg.enabled       = (p[@"enabled"] == nil)       ? YES : [p[@"enabled"] boolValue];
-    lg_cfg.tabBarEnabled = (p[@"tabBarEnabled"] == nil) ? YES : [p[@"tabBarEnabled"] boolValue];
-    lg_cfg.navBarEnabled = (p[@"navBarEnabled"] == nil) ? YES : [p[@"navBarEnabled"] boolValue];
+    lg_cfg.enabled       = (p[@\"enabled\"] == nil)       ? YES : [p[@\"enabled\"] boolValue];
+    lg_cfg.tabBarEnabled = (p[@\"tabBarEnabled\"] == nil) ? YES : [p[@\"tabBarEnabled\"] boolValue];
+    lg_cfg.navBarEnabled = (p[@\"navBarEnabled\"] == nil) ? YES : [p[@\"navBarEnabled\"] boolValue];
 
-    id iv = p[@"intensity"];
+    id iv = p[@\"intensity\"];
     lg_cfg.intensity = (iv && [iv isKindOfClass:[NSNumber class]]) ? [iv doubleValue] : 0.7;
     if (lg_cfg.intensity < 0.0) lg_cfg.intensity = 0.0;
     if (lg_cfg.intensity > 1.0) lg_cfg.intensity = 1.0;
@@ -29,7 +29,6 @@ static void lg_loadPrefs(void) {
 static void lg_notify(CFNotificationCenterRef center, void *observer, CFStringRef name, const void *object, CFDictionaryRef userInfo) {
     lg_loadPrefs();
 
-    // iOS 15+ 兼容的窗口获取方式
     UIWindow *targetWindow = nil;
     NSSet *scenes = [UIApplication sharedApplication].connectedScenes;
     for (UIWindowScene *scene in scenes) {
@@ -50,12 +49,12 @@ static void lg_init(void) {
     lg_loadPrefs();
     CFNotificationCenterAddObserver(CFNotificationCenterGetDarwinNotifyCenter(),
                                     NULL, lg_notify,
-                                    CFSTR("com.k.liquidglasshook/reload"),
+                                    CFSTR(\"com.k.liquidglasshook/reload\"),
                                     NULL, CFNotificationSuspensionBehaviorCoalesce);
 }
 
 static BOOL lg_isiOS26(void) {
-    return [[[UIDevice currentDevice] systemVersion] compare:@"26.0" options:NSNumericSearch] != NSOrderedAscending;
+    return [[[UIDevice currentDevice] systemVersion] compare:@\"26.0\" options:NSNumericSearch] != NSOrderedAscending;
 }
 
 // ========================
@@ -76,11 +75,10 @@ static void lg_clearBar(UIView *bar) {
 static void lg_applyGlassToTabBar(UITabBar *bar) {
     lg_clearBar(bar);
 
-    // iOS 13+ appearance
     if (@available(iOS 13.0, *)) {
-        id tabBarApClass = NSClassFromString(@"UITabBarAppearance");
+        id tabBarApClass = NSClassFromString(@\"UITabBarAppearance\");
         if (tabBarApClass) {
-            id ap = [[tabBarApClass alloc] init];  // 修复：[[ ... ]]
+            id ap = [[tabBarApClass alloc] init];
             if ([ap respondsToSelector:@selector(configureWithTransparentBackground)]) {
                 [ap performSelector:@selector(configureWithTransparentBackground)];
             }
@@ -93,11 +91,10 @@ static void lg_applyGlassToTabBar(UITabBar *bar) {
         }
     }
 
-    // iOS 26+ 系统原生液态玻璃（到此为止，不叠层）
     if (lg_isiOS26()) return;
     if (lg_cfg.intensity <= 0.01) return;
 
-    // 低版本降级：材质毛玻璃
+    // 先移除旧的
     for (UIView *v in bar.subviews) {
         if (v.tag == 7788) [v removeFromSuperview];
     }
@@ -125,11 +122,10 @@ static void lg_applyGlassToTabBar(UITabBar *bar) {
 static void lg_applyGlassToNavBar(UINavigationBar *bar) {
     lg_clearBar(bar);
 
-    // iOS 13+ appearance
     if (@available(iOS 13.0, *)) {
-        id navBarApClass = NSClassFromString(@"UINavigationBarAppearance");
+        id navBarApClass = NSClassFromString(@\"UINavigationBarAppearance\");
         if (navBarApClass) {
-            id ap = [[navBarApClass alloc] init];  // 修复：[[ ... ]]
+            id ap = [[navBarApClass alloc] init];
             if ([ap respondsToSelector:@selector(configureWithTransparentBackground)]) {
                 [ap performSelector:@selector(configureWithTransparentBackground)];
             }
@@ -145,11 +141,9 @@ static void lg_applyGlassToNavBar(UINavigationBar *bar) {
         }
     }
 
-    // iOS 26+ 系统原生液态玻璃
     if (lg_isiOS26()) return;
     if (lg_cfg.intensity <= 0.01) return;
 
-    // 低版本降级：材质毛玻璃
     for (UIView *v in bar.subviews) {
         if (v.tag == 7789) [v removeFromSuperview];
     }
@@ -177,12 +171,17 @@ static void lg_applyGlassToNavBar(UINavigationBar *bar) {
 - (void)didMoveToWindow {
     %orig;
     if (!lg_cfg.enabled || !lg_cfg.tabBarEnabled) return;
-    lg_applyGlassToTabBar(self);
+    // 只在首次进入窗口时应用一次
+    if (![self subviewWithTag:7788]) {
+        lg_applyGlassToTabBar(self);
+    }
 }
 
 - (void)layoutSubviews {
     %orig;
     if (!lg_cfg.enabled || !lg_cfg.tabBarEnabled) return;
+    // 关键修复：如果毛玻璃视图已存在，立刻 return，不做任何重操作
+    if ([self subviewWithTag:7788]) return;
     lg_applyGlassToTabBar(self);
 }
 
@@ -196,12 +195,16 @@ static void lg_applyGlassToNavBar(UINavigationBar *bar) {
 - (void)didMoveToWindow {
     %orig;
     if (!lg_cfg.enabled || !lg_cfg.navBarEnabled) return;
-    lg_applyGlassToNavBar(self);
+    if (![self subviewWithTag:7789]) {
+        lg_applyGlassToNavBar(self);
+    }
 }
 
 - (void)layoutSubviews {
     %orig;
     if (!lg_cfg.enabled || !lg_cfg.navBarEnabled) return;
+    // 关键修复：如果毛玻璃视图已存在，立刻 return
+    if ([self subviewWithTag:7789]) return;
     lg_applyGlassToNavBar(self);
 }
 
