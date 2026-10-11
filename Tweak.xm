@@ -16,15 +16,6 @@ static NSString *lg_prefPath(void) {
     return ROOT_PATH_NS(@"/var/mobile/Library/Preferences/com.k.liquidglasshook.plist");
 }
 
-static NSMutableDictionary *lg_readPrefs(void) {
-    NSMutableDictionary *p = [[NSMutableDictionary alloc] initWithContentsOfFile:lg_prefPath()];
-    return p ?: [NSMutableDictionary dictionary];
-}
-
-static void lg_writePrefs(NSMutableDictionary *p) {
-    [p writeToFile:lg_prefPath() atomically:YES];
-}
-
 static void lg_loadPrefs(void) {
     NSDictionary *p = [NSDictionary dictionaryWithContentsOfFile:lg_prefPath()] ?: @{};
     lg_cfg.enabled       = (p[@"enabled"] == nil)       ? YES : [p[@"enabled"] boolValue];
@@ -191,7 +182,7 @@ static void lg_applyNav(UINavigationBar *bar) {
     if ([self isKindOfClass:%c(UITableViewController)]) {
         tv = [(id)self tableView];
     } else if ([self respondsToSelector:@selector(tableView)]) {
-        tv = [self valueForKey:@"tableView"]; // 这里已经修正为字符串
+        tv = [self valueForKey:@"tableView"];
     }
     if (!tv) return;
     if ([tv tableHeaderView] && [tv tableHeaderView].tag == 9901) return;
