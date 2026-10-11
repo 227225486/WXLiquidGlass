@@ -8,14 +8,18 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
+      - name: Checkout source
         uses: actions/checkout@v4
 
-      - name: Setup Theos (自动安装toolchain、SDK、ldid)
-        uses: theos/setup-theos@v1
-
-      - name: Build Tweak
-        run: make package
+      - name: Install Theos official script
+        run: |
+          sudo apt update
+          sudo apt install -y bash curl git xz-utils
+          # 官方一键安装脚本，自动下载theos、toolchain、SDK、ldid
+          bash -c "$(curl -fsSL https://raw.githubusercontent.com/theos/theos/master/bin/install-theos)"
+          export THEOS=$HOME/theos
+          export PATH="$THEOS/bin:$PATH"
+          make package
 
       - name: Upload deb
         uses: actions/upload-artifact@v4
