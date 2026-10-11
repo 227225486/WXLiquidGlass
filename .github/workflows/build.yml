@@ -11,17 +11,19 @@ jobs:
       - name: Checkout source
         uses: actions/checkout@v4
 
-      - name: Setup Theos + Linux ldid
+      - name: Setup Theos + ldid + iOS SDK
         run: |
           if [ ! -d "$HOME/theos" ]; then
             git clone --recursive https://github.com/theos/theos.git $HOME/theos
           fi
           export THEOS=$HOME/theos
           export PATH="$THEOS/bin:$PATH"
-          # 下载linux版本ldid二进制
+          # 下载linux版ldid
           curl -L -o ldid https://github.com/theos/ldid/releases/download/v2.1.5/ldid-linux
           chmod +x ldid
           mv ldid $HOME/theos/bin/
+          # 使用nic自动下载SDK
+          nic install sdk iphoneos
           make package
 
       - name: Upload deb artifact
