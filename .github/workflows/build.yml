@@ -8,22 +8,31 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - name: Setup Theos
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Install system dependencies
         run: |
-          git clone --recursive https://github.com/theos/theos.git ~/theos
+          sudo apt update
+          sudo apt install -y clang lld git make curl libxml2-dev unzip wget
+
+      - name: Clone Theos
+        run: |
+          git clone --recursive https://github.com/theos/theos.git $HOME/theos
           echo "THEOS=$HOME/theos" >> $GITHUB_ENV
-          sudo apt update && sudo apt install -y clang lld git make
-      - name: Build Tweak
+
+      # 下载 iOS26 SDK
+      - name: Download iOS26 SDK
         run: |
-          export THEOS=$HOME/theos
+          cd $HOME/theos/sdks
+          curl -L -O https://mirror.ghproxy.com/https://github.com/theos/sdks/raw/master/iPhoneOS26.0.sdk.tar.xz
+          tar -xf iPhoneOS26.0.sdk.tar.xz
+
+      - name: Build tweak
+        run: |
           make package
-      - name: Upload deb
+
+      - name: Upload deb artifact
         uses: actions/upload-artifact@v4
         with:
           path: debs/*.deb
-      - name: Release
-        uses: softprops/action-gh-release@v2
-        if: startsWith(github.ref, 'refs/tags/')
-        with:
-          files: debs/*.deb
