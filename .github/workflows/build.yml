@@ -7,15 +7,40 @@ on:
 jobs:
   build:
     runs-on: macos-latest
+    env:
+      THEOS: $HOME/theos
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout source
+        uses: actions/checkout@v4
 
-      # 现成封装好的Theos Action，自动拉完整theos，自带工具链
-      - name: Setup Theos
-        uses: hbang/setup-theos@v1
+      - name: Cache Theos
+        uses: actions/cache@v4
+        with:
+          path: ~/theos
+          key: macos-theos-final-v1
 
-      - name: Build
-        run: make package FINALPACKAGE=1
+      - name: Install brew dependencies
+        run: |
+          brew install git make perl ldid
+        shell: bash
+
+      - name: Clone Theos full repo (cache miss)
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: |
+          git clone --recursive https://github.com/theos/theos.git $HOME/theos
+        shell: bash
+
+      - name: Debug check theos
+        run: |
+          export THEOS=$HOME/theos
+          ls -la $THEOS/makefiles/
+        shell: bash
+
+      - name: Build Tweak
+        run: |
+          export THEOS=$HOME/theos
+          make package FINALPACKAGE=1
+        shell: bash
 
       - name: Upload deb
         uses: actions/upload-artifact@v4
