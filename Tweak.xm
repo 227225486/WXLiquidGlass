@@ -168,7 +168,7 @@ static void lg_applyNav(UINavigationBar *bar) {
 %end
 
 // ========================
-// 微信内设置入口（纯 target-action，不用 associated object）
+// 微信内设置入口
 // ========================
 %hook UIViewController
 
@@ -188,8 +188,11 @@ static void lg_applyNav(UINavigationBar *bar) {
     if (![t isEqualToString:@"设置"] && ![t isEqualToString:@"設定"] && ![t isEqualToString:@"Settings"]) return;
 
     UITableView *tv = nil;
-    if ([self isKindOfClass:%c(UITableViewController)]) tv = [(id)self tableView];
-    else if ([self respondsToSelector:@selector(tableView)]) tv = [self valueForKey:@selector(tableView)];
+    if ([self isKindOfClass:%c(UITableViewController)]) {
+        tv = [(id)self tableView];
+    } else if ([self respondsToSelector:@selector(tableView)]) {
+        tv = [self valueForKey:@"tableView"]; // 这里已经修正为字符串
+    }
     if (!tv) return;
     if ([tv tableHeaderView] && [tv tableHeaderView].tag == 9901) return;
 
