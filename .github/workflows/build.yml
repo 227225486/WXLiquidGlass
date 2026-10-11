@@ -30,10 +30,10 @@ jobs:
           git clone --recursive https://github.com/theos/theos.git $HOME/theos
         shell: bash
 
-      - name: Debug check theos
+      - name: Debug - 列出Xcode全部iOS SDK
         run: |
           export THEOS=$HOME/theos
-          ls -la $THEOS/makefiles/
+          ls /Applications/Xcode*.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/
         shell: bash
 
       - name: Build Tweak
@@ -42,7 +42,11 @@ jobs:
           make package FINALPACKAGE=1
         shell: bash
 
+      - name: List build output
+        run: ls -la packages/
+        shell: bash
+
       - name: Upload deb
         uses: actions/upload-artifact@v4
         with:
-          path: debs/*.deb
+          path: packages/*.deb
