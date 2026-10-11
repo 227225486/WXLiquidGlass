@@ -11,24 +11,21 @@ jobs:
       - name: Checkout source
         uses: actions/checkout@v4
 
-      - name: Download prebuilt ldid
+      - name: Setup Theos + ldid
         run: |
+          # 不存在才克隆theos
+          if [ ! -d "$HOME/theos" ]; then
+            git clone --recursive https://github.com/theos/theos.git $HOME/theos
+          fi
+          # 下载ldid
           curl -L -o ldid https://github.com/theos/ldid/releases/latest/download/ldid-macos
           chmod +x ldid
           mkdir -p $HOME/theos/bin
           mv ldid $HOME/theos/bin/
-          export PATH="$HOME/theos/bin:$PATH"
-
-      - name: Install Theos
-        run: |
-          if [ ! -d "$HOME/theos" ]; then
-            git clone --recursive https://github.com/theos/theos.git $HOME/theos
-          fi
-          echo "THEOS=$HOME/theos" >> $GITHUB_ENV
-          export PATH="$HOME/theos/bin:$PATH"
-
-      - name: Build Tweak
-        run: |
+          # 一次性设置环境变量，当前shell直接生效
+          export THEOS=$HOME/theos
+          export PATH="$THEOS/bin:$PATH"
+          # 直接在这里打包，变量全程有效
           make package
 
       - name: Upload deb artifact
