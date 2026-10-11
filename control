@@ -1,10 +1,10 @@
 Package: com.k.liquidglasshook
 Name: LiquidGlassHook
-Version: 1.1
+Version: 1.0.0
 Architecture: iphoneos-arm
-Description: 为微信 TabBar 与导航栏启用液态玻璃，支持总开关、分区开关、强度调节
-Maintainer: K
-Author: K
+Description: 微信顶栏底栏液态玻璃毛玻璃效果
+Maintainer: k
+Author: k
 Section: Tweaks
-Depends: mobilesubstrate (>= 0.9.7000) | ellekit, preferenceloader
-Homepage: https://github.com/YOUR_NAME/LiquidGlassHook
+Depends: mobilesubstrate (>= 0.9.7000), preferenceloader
+Conflicts:
