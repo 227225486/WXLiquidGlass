@@ -1,7 +1,0 @@
-Package: com.yourname.wcglassliquid
-Name: WCGlassLiquid
-Version: 0.0.1
-Architecture: iphoneos-arm64
-Maintainer: YourName
-Description: WeChat glass liquid effect
-Depends: mobilesubstrate
