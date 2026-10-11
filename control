@@ -1,0 +1,7 @@
+Package: com.xxx.wcglassliquid
+Name: WCGlassLiquid
+Version: 0.0.1
+Author: YourName
+Maintainer: YourName
+Description: Liquid Glass effect for WeChat, similar to WCGlass
+Depends: mobilesubstrate
