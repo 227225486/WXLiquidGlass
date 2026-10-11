@@ -11,17 +11,12 @@ jobs:
       - name: Checkout source
         uses: actions/checkout@v4
 
-      - name: Install Homebrew & ldid
-        run: |
-          /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-          echo 'eval "$(/opt/homebrew/bin/brew shellenv)"' >> ~/.zshrc
-          eval "$(/opt/homebrew/bin/brew shellenv)"
-          brew install ldid
-
-      - name: Install Theos
+      - name: Install Theos & ldid
         run: |
           git clone --recursive https://github.com/theos/theos.git $HOME/theos
           echo "THEOS=$HOME/theos" >> $GITHUB_ENV
+          # 直接使用theos自带ldid，不需要brew
+          export PATH="$HOME/theos/bin:$PATH"
 
       - name: Build Tweak
         run: |
