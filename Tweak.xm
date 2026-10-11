@@ -37,7 +37,7 @@ static void lg_loadPrefs(void) {
     if (lg_cfg.intensity > 1.0) lg_cfg.intensity = 1.0;
 }
 
-static void lg_notify(void) {
+static void _lg_notify_impl(void) {
     lg_loadPrefs();
     NSSet *scenes = [UIApplication sharedApplication].connectedScenes;
     for (UIWindowScene *s in scenes) {
@@ -48,11 +48,15 @@ static void lg_notify(void) {
     }
 }
 
+static void lg_notify_callback(CFNotificationCenterRef center, void *observer, CFStringRef name, const void *object, CFDictionaryRef userInfo) {
+    _lg_notify_impl();
+}
+
 __attribute__((constructor))
 static void lg_init(void) {
     lg_loadPrefs();
     CFNotificationCenterAddObserver(CFNotificationCenterGetDarwinNotifyCenter(),
-        NULL, (void *)lg_notify, CFSTR("com.k.liquidglasshook/reload"),
+        NULL, lg_notify_callback, CFSTR("com.k.liquidglasshook/reload"),
         NULL, CFNotificationSuspensionBehaviorCoalesce);
 }
 
@@ -165,15 +169,15 @@ static void lg_applyNav(UINavigationBar *bar) {
 %end
 
 // ========================
-// 微信内设置入口（不依赖类名，认 title）
+// 微信内设置入口
 // ========================
 @interface UIView (LGRow)
 - (void)lg_tapped;
 @end
 @implementation UIView (LGRow)
 - (void)lg_tapped {
-    UISwitch *sw = objc_getAssociatedObject(self, @"sw");
-    void (^blk)(BOOL) = (__bridge void (^)(BOOL))objc_getAssociatedObject(self, @"blk");
+    UISwitch *sw = objc_getAssociatedObject(self, @selector(sw));
+    void (^blk)(BOOL) = (__bridge void (^)(BOOL))objc_getAssociatedObject(self, @selector(blk));
     if (sw && blk) { BOOL n = !sw.isOn; sw.on = n; blk(n); }
 }
 @end
@@ -181,20 +185,28 @@ static void lg_applyNav(UINavigationBar *bar) {
 static UIView *lg_row(BOOL on, void (^blk)(BOOL)) {
     CGFloat w = [UIScreen mainScreen].bounds.size.width;
     UIView *row = [[UIView alloc] initWithFrame:CGRectMake(0, 0, w, 44)];
-    row.backgroundColor = (@available(iOS 13.0, *)) ? UIColor.systemBackgroundColor : UIColor.whiteColor;
+    if (@available(iOS 13.0, *)) {
+        row.backgroundColor = UIColor.systemBackgroundColor;
+    } else {
+        row.backgroundColor = UIColor.whiteColor;
+    }
+    
     UILabel *lbl = [[UILabel alloc] initWithFrame:CGRectMake(16, 0, w - 90, 44)];
     lbl.text = @"液态玻璃"; lbl.font = [UIFont systemFontOfSize:16];
     lbl.textColor = UIColor.labelColor ?: UIColor.blackColor;
     [row addSubview:lbl];
+    
     UISwitch *sw = [[UISwitch alloc] init];
     sw.on = on; sw.center = CGPointMake(w - 32, 22);
     [row addSubview:sw];
+    
     UIView *sep = [[UIView alloc] initWithFrame:CGRectMake(16, 43.5, w - 32, 0.5)];
     sep.backgroundColor = [UIColor.grayColor colorWithAlphaComponent:0.35];
     sep.autoresizingMask = UIViewAutoresizingFlexibleWidth;
     [row addSubview:sep];
-    objc_setAssociatedObject(row, @"sw", sw, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
-    objc_setAssociatedObject(row, @"blk", (__bridge id)blk, OBJC_ASSOCIATION_COPY);
+    
+    objc_setAssociatedObject(row, @selector(sw), sw, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+    objc_setAssociatedObject(row, @selector(blk), (__bridge id)blk, OBJC_ASSOCIATION_COPY);
     row.userInteractionEnabled = YES;
     [row addGestureRecognizer:[[UITapGestureRecognizer alloc] initWithTarget:row action:@selector(lg_tapped)]];
     return row;
@@ -204,24 +216,29 @@ static UIView *lg_row(BOOL on, void (^blk)(BOOL)) {
 - (void)viewWillAppear:(BOOL)animated {
     %orig;
     NSString *t = self.title ?: @"";
-    // 只认「设置」页；如果你微信是繁体/英文，改成 @"設定" / @"Settings"
     if (![t isEqualToString:@"设置"] && ![t isEqualToString:@"設定"] && ![t isEqualToString:@"Settings"]) return;
+    
     UITableView *tv = nil;
     if ([self isKindOfClass:%c(UITableViewController)]) tv = [(id)self tableView];
     else if ([self respondsToSelector:@selector(tableView)]) tv = [self valueForKey:@"tableView"];
     if (!tv) return;
-    if ([tv tableHeaderView] && [tv tableHeaderView].tag == 9901) return;   // 已注入，跳过
+    if ([tv tableHeaderView] && [tv tableHeaderView].tag == 9901) return;
 
     CGFloat w = [UIScreen mainScreen].bounds.size.width;
     UIView *box = [[UIView alloc] initWithFrame:CGRectMake(0, 0, w, 44)];
     box.tag = 9901;
-    box.backgroundColor = (@available(iOS 13.0, *)) ? UIColor.systemGroupedBackgroundColor : [UIColor colorWithRed:0.95 green:0.95 blue:0.95 alpha:1];
+    
+    if (@available(iOS 13.0, *)) {
+        box.backgroundColor = UIColor.systemGroupedBackgroundColor;
+    } else {
+        box.backgroundColor = [UIColor colorWithRed:0.95 green:0.95 blue:0.95 alpha:1];
+    }
 
     UIView *r = lg_row(lg_cfg.enabled, ^(BOOL on) {
         NSMutableDictionary *p = lg_readPrefs();
         p[@"enabled"] = @(on);
         lg_writePrefs(p);
-        lg_notify();
+        _lg_notify_impl();
     });
     r.frame = CGRectMake(0, 0, w, 44);
     r.autoresizingMask = UIViewAutoresizingFlexibleWidth;
