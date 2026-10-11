@@ -7,7 +7,9 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    container: debian:latest
+    container:
+      image: debian:latest
+      options: --dns 1.1.1.1 --dns 8.8.8.8
     env:
       THEOS: /home/builder/theos
     steps:
@@ -18,7 +20,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: /home/builder/theos
-          key: debian-theos-v2
+          key: debian-theos-v3
 
       - name: Install debian dependencies & create builder user
         run: |
@@ -28,21 +30,21 @@ jobs:
           usermod -aG sudo builder
           echo "builder ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
 
-      - name: Clone Theos (only when cache miss)
+      - name: Clone Theos (cache miss only)
         if: steps.cache.outputs.cache-hit != 'true'
         run: |
           su - builder -c "
-            git clone --recursive https://mirror.ghproxy.com/https://github.com/theos/theos.git ~/theos
+            git clone --recursive https://ghproxy.com/https://github.com/theos/theos.git ~/theos
           "
 
-      - name: Download Linux iPhone toolchain via ghproxy mirror
+      - name: Download Linux iPhone toolchain via ghproxy
         if: steps.cache.outputs.cache-hit != 'true'
         run: |
           su - builder -c "
             cd ~/theos
             mkdir -p toolchain/linux/iphone
             cd toolchain/linux/iphone
-            curl -L --fail https://mirror.ghproxy.com/https://github.com/theos/toolchain/releases/download/2024.04/ios-toolchain-linux-2024.04.tar.xz -o toolchain.tar.xz
+            curl -L --fail https://ghproxy.com/https://github.com/theos/toolchain/releases/download/2024.04/ios-toolchain-linux-2024.04.tar.xz -o toolchain.tar.xz
             tar -xf toolchain.tar.xz
             rm toolchain.tar.xz
           "
