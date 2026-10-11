@@ -1,4 +1,0 @@
-LiquidGlassHookPrefs/
-├── Makefile          # bundle 编译配置（FILES 留空）
-├── entry.plist       # 设置列表入口
-└── Root.plist        # 点进去的页面内容
