@@ -3,5 +3,5 @@ Name: WCGlassLiquid
 Version: 0.0.1
 Author: YourName
 Maintainer: YourName
-Description: Liquid Glass effect for WeChat, similar to WCGlass
-Depends: mobilesubstrate
+Description: iOS26 Liquid Glass for WeChat, like WCGlass
+Depends: mobilesubstrate, firmware (>=26.0)
