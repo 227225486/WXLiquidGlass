@@ -1,16 +1,20 @@
 ARCHS = arm64 arm64e
 TARGET = iphone:clang:latest:15.0
 INSTALL_TARGET_PROCESSES = WeChat
+# THEOS_PACKAGE_SCHEME = rootless
 
 include $(THEOS)/makefiles/common.mk
 
 TWEAK_NAME = LiquidGlassHook
-
 LiquidGlassHook_FILES = Tweak.xm
-LiquidGlassHook_CFLAGS = -fobjc-arc
+LiquidGlassHook_CFLAGS = -fobjc-arc -Wno-unicode-whitespace
 LiquidGlassHook_FRAMEWORKS = UIKit
 
-include $(THEOS_MAKE_PATH)/tweak.mk
+BUNDLE_NAME = LiquidGlassHookPrefs
+LiquidGlassHookPrefs_FILES = 
+LiquidGlassHookPrefs_INSTALL_PATH = /Library/PreferenceBundles
+LiquidGlassHookPrefs_FRAMEWORKS = UIKit Foundation
+LiquidGlassHookPrefs_PRIVATE_FRAMEWORKS = Preferences
 
-after-package::
-	@echo "✅ LiquidGlassHook 打包完成！"
+include $(THEOS_MAKE_PATH)/tweak.mk
+include $(THEOS_MAKE_PATH)/bundle.mk
