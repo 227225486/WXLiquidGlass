@@ -6,23 +6,21 @@ on:
 
 jobs:
   build:
-    runs-on: macos-latest
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout source
         uses: actions/checkout@v4
 
-      - name: Setup Theos + ldid
+      - name: Setup Theos on Ubuntu
         run: |
           if [ ! -d "$HOME/theos" ]; then
             git clone --recursive https://github.com/theos/theos.git $HOME/theos
           fi
-          # 固定版本ldid-macos二进制，不再用latest跳转
-          curl -L -o ldid https://github.com/theos/ldid/releases/download/v2.1.5/ldid-macos
-          chmod +x ldid
-          mkdir -p $HOME/theos/bin
-          mv ldid $HOME/theos/bin/
           export THEOS=$HOME/theos
           export PATH="$THEOS/bin:$PATH"
+          # Ubuntu直接安装ldid
+          sudo apt update
+          sudo apt install ldid -y
           make package
 
       - name: Upload deb artifact
