@@ -11,16 +11,17 @@ jobs:
       - name: Checkout source
         uses: actions/checkout@v4
 
-      - name: Setup Theos on Ubuntu
+      - name: Setup Theos + Linux ldid
         run: |
           if [ ! -d "$HOME/theos" ]; then
             git clone --recursive https://github.com/theos/theos.git $HOME/theos
           fi
           export THEOS=$HOME/theos
           export PATH="$THEOS/bin:$PATH"
-          # Ubuntu直接安装ldid
-          sudo apt update
-          sudo apt install ldid -y
+          # 下载linux版本ldid二进制
+          curl -L -o ldid https://github.com/theos/ldid/releases/download/v2.1.5/ldid-linux
+          chmod +x ldid
+          mv ldid $HOME/theos/bin/
           make package
 
       - name: Upload deb artifact
