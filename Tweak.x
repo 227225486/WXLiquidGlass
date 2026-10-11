@@ -2,35 +2,28 @@
 //  Tweak.x
 //  WXLiquidGlass
 //
-//  Logos 入口
-//  - hook UINavigationBar / UITabBar 的 layoutSubviews，挂载液态玻璃
-//  - hook UITableViewCell 的 layoutSubviews，给聊天气泡挂载玻璃（通用识别，不引用微信私有类）
-//  - hook UIViewController 的 viewDidLoad，在「我 → 设置」页右上角注入设置入口
-//
-//  全程不引用任何微信私有类名，只用 UIKit 公共类 + 通用识别。
-//
 
 #import "CCLiquidGlassView.h"
 #import "CCLiquidGlassSettingsViewController.h"
 
 // =====================================================================
-// 常量：玻璃视图 tag（防止每个 layout 周期重复挂载）
+// 常量
 // =====================================================================
-static const NSUInteger WXLGlassNavTag    = 0xCC01; // 导航栏玻璃
-static const NSUInteger WXLGlassTabTag    = 0xCC02; // 底部 TabBar 玻璃
-static const NSUInteger WXLGlassBubbleTag = 0xCC03; // 聊天气泡玻璃
+static const NSUInteger WXLGlassNavTag    = 0xCC01;
+static const NSUInteger WXLGlassTabTag    = 0xCC02;
+static const NSUInteger WXLGlassBubbleTag = 0xCC03;
 
 // =====================================================================
 // 工具函数
 // =====================================================================
 
-// 读 NSUserDefaults，未设置时返回默认值
+// 读 NSUserDefaults
 static BOOL WXLDefaultsBool(NSString *key, BOOL def) {
     NSUserDefaults *d = [NSUserDefaults standardUserDefaults];
     return [d objectForKey:key] ? [d boolForKey:key] : def;
 }
 
-// 依据设置刷新玻璃外观（透明模式 / 渐变顶部）
+// 依据设置刷新玻璃外观
 static void WXLApplyGlassStyle(CCLiquidGlassView *glass) {
     BOOL transparent = WXLDefaultsBool(WXLTransparentModeKey, WXLDefaultTransparentMode);
     BOOL gradTop     = WXLDefaultsBool(WXLGradientTopKey, WXLDefaultGradientTop);
@@ -38,14 +31,18 @@ static void WXLApplyGlassStyle(CCLiquidGlassView *glass) {
     glass.highlightLayer.hidden = !gradTop;
 }
 
-// 隐藏系统自带的栏背景（UIVisualEffectView 是公共类，借此清掉不透明的系统背景层，露出玻璃）
+// 隐藏系统自带的栏背景（关键是：跳过我们自己的 CCLiquidGlassView）
 static void WXLHideSystemBarBackground(UIView *bar) {
     for (UIView *sub in bar.subviews) {
+        // 跳过我们插入的玻璃视图
+        if ([sub isKindOfClass:[CCLiquidGlassView class]]) continue;
+
         if ([sub isKindOfClass:[UIVisualEffectView class]]) {
             sub.hidden = YES;
             sub.alpha = 0.0;
         }
         for (UIView *g in sub.subviews) {
+            if ([g isKindOfClass:[CCLiquidGlassView class]]) continue;
             if ([g isKindOfClass:[UIVisualEffectView class]]) {
                 g.hidden = YES;
                 g.alpha = 0.0;
@@ -54,7 +51,7 @@ static void WXLHideSystemBarBackground(UIView *bar) {
     }
 }
 
-// 挂载导航栏玻璃（幂等：已存在则仅刷新布局）
+// 挂载导航栏玻璃
 static void WXLAttachNavBarGlass(UINavigationBar *bar) {
     CCLiquidGlassView *glass = (CCLiquidGlassView *)[bar viewWithTag:WXLGlassNavTag];
     if (!glass) {
@@ -69,7 +66,7 @@ static void WXLAttachNavBarGlass(UINavigationBar *bar) {
     WXLApplyGlassStyle(glass);
 }
 
-// 挂载底栏玻璃（幂等），返回是否已应用
+// 挂载底栏玻璃
 static BOOL WXLAttachTabBarGlass(UITabBar *bar) {
     if (!WXLDefaultsBool(WXLTabBarEnabledKey, WXLDefaultTabBarEnabled)) {
         CCLiquidGlassView *g = (CCLiquidGlassView *)[bar viewWithTag:WXLGlassTabTag];
@@ -90,11 +87,9 @@ static BOOL WXLAttachTabBarGlass(UITabBar *bar) {
     return YES;
 }
 
-// 给单个气泡子视图挂玻璃（幂等）
+// 给单个气泡子视图挂玻璃
 static void WXLApplyBubbleGlassToView(UIView *bubble) {
-    if ([bubble viewWithTag:WXLGlassBubbleTag]) {
-        return;
-    }
+    if ([bubble viewWithTag:WXLGlassBubbleTag]) return;
     CCLiquidGlassView *glass = [CCLiquidGlassView glassViewForChatBubble];
     glass.tag = WXLGlassBubbleTag;
     [glass attachToHostView:bubble insets:UIEdgeInsetsZero];
@@ -102,7 +97,7 @@ static void WXLApplyBubbleGlassToView(UIView *bubble) {
 }
 
 // =====================================================================
-// 导航栏：液态玻璃
+// 导航栏
 // =====================================================================
 %hook UINavigationBar
 
@@ -115,7 +110,7 @@ static void WXLApplyBubbleGlassToView(UIView *bubble) {
 %end
 
 // =====================================================================
-// 底部 TabBar：液态玻璃（受"底栏总开关"控制）
+// 底部 TabBar
 // =====================================================================
 %hook UITabBar
 
@@ -128,30 +123,21 @@ static void WXLApplyBubbleGlassToView(UIView *bubble) {
 %end
 
 // =====================================================================
-// 聊天气泡：液态玻璃（受"气泡开关"控制）
-// 不用任何微信私有类名，仅凭通用几何特征识别气泡：宽高适中 + 明显圆角
+// 聊天气泡
 // =====================================================================
 %hook UITableViewCell
 
 - (void)layoutSubviews {
     %orig;
-    if (!WXLDefaultsBool(WXLChatBubbleEnabledKey, WXLDefaultChatBubbleEnabled)) {
-        return;
-    }
+    if (!WXLDefaultsBool(WXLChatBubbleEnabledKey, WXLDefaultChatBubbleEnabled)) return;
+
     CGFloat cellW = CGRectGetWidth(self.contentView.bounds);
     for (UIView *sub in self.contentView.subviews) {
         CGFloat w = CGRectGetWidth(sub.frame);
         CGFloat h = CGRectGetHeight(sub.frame);
-        // 几何过滤：宽度 50 ~ 单元格宽 95%，高度 >= 24，圆角 >= 6
-        if (w < 50.0 || w > cellW * 0.95) {
-            continue;
-        }
-        if (h < 24.0) {
-            continue;
-        }
-        if (sub.layer.cornerRadius < 6.0) {
-            continue;
-        }
+        if (w < 50.0 || w > cellW * 0.95) continue;
+        if (h < 24.0) continue;
+        if (sub.layer.cornerRadius < 6.0) continue;
         WXLApplyBubbleGlassToView(sub);
     }
 }
@@ -159,8 +145,7 @@ static void WXLApplyBubbleGlassToView(UIView *bubble) {
 %end
 
 // =====================================================================
-// 设置入口：「我 → 设置」页右上角
-// 仅用公共 UIViewController + 标题"设置"识别，不引用微信私有类
+// 设置入口
 // =====================================================================
 %hook UIViewController
 
