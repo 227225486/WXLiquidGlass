@@ -1,0 +1,51 @@
+{
+    title = "液态玻璃";
+    items = (
+        {
+            cell = PSGroupCell;
+            label = "总开关";
+        },
+        {
+            cell = PSSwitchCell;
+            default = 1;
+            defaults = "com.k.liquidglasshook";
+            key = "enabled";
+            label = "启用液态玻璃";
+            PostNotification = "com.k.liquidglasshook/reload";
+        },
+        {
+            cell = PSGroupCell;
+            label = "作用位置";
+        },
+        {
+            cell = PSSwitchCell;
+            default = 1;
+            defaults = "com.k.liquidglasshook";
+            key = "tabBarEnabled";
+            label = "底栏（TabBar）";
+            PostNotification = "com.k.liquidglasshook/reload";
+        },
+        {
+            cell = PSSwitchCell;
+            default = 1;
+            defaults = "com.k.liquidglasshook";
+            key = "navBarEnabled";
+            label = "顶栏（NavBar）";
+            PostNotification = "com.k.liquidglasshook/reload";
+        },
+        {
+            cell = PSGroupCell;
+            footerText = "滑动越靠右越明显。iOS 26 及以上使用系统自带液态玻璃，此选项无效。";
+        },
+        {
+            cell = PSSliderCell;
+            default = 0.7;
+            min = 0;
+            max = 1;
+            showValue = 1;
+            defaults = "com.k.liquidglasshook";
+            key = "intensity";
+            PostNotification = "com.k.liquidglasshook/reload";
+        }
+    );
+}
