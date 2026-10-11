@@ -1,5 +1,5 @@
 ARCHS = arm64 arm64e
-TARGET = iphone:clang:26.3:15.0
+TARGET = iphone:clang:latest:15.0
 PACKAGE_FORMAT = deb
 THEOS_PACKAGE_SCHEME = rootless
 INSTALL_TARGET_PROCESSES = WeChat
