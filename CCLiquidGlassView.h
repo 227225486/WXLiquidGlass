@@ -10,15 +10,12 @@ NS_ASSUME_NONNULL_BEGIN
 
 typedef NS_ENUM(NSUInteger, CCLiquidGlassStyle) {
     CCLiquidGlassStyleNavigationBar = 0,
-    CCLiquidGlassStyleTabBar,
-    CCLiquidGlassStyleChatBubble
+    CCLiquidGlassStyleTabBar
 };
 
 @interface CCLiquidGlassView : UIView
 
 @property (nonatomic, strong, readonly) UIVisualEffectView *blurEffectView;
-@property (nonatomic, strong, readonly) CAGradientLayer   *gradientLayer;
-@property (nonatomic, strong, readonly) CAGradientLayer   *highlightLayer;
 @property (nonatomic, assign, readonly) CCLiquidGlassStyle glassStyle;
 
 - (instancetype)initWithStyle:(CCLiquidGlassStyle)style;
@@ -27,9 +24,6 @@ typedef NS_ENUM(NSUInteger, CCLiquidGlassStyle) {
 
 + (instancetype)glassViewForNavigationBar;
 + (instancetype)glassViewForTabBar;
-+ (instancetype)glassViewForChatBubble;
-
-- (void)configureDefaultAppearance;
 
 - (void)attachToHostView:(UIView *)hostView insets:(UIEdgeInsets)insets;
 - (void)refreshLayoutForHostView:(UIView *)hostView insets:(UIEdgeInsets)insets;
