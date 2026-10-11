@@ -1,0 +1,29 @@
+name: Build WCGlassLiquid
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Theos
+        run: |
+          git clone --recursive https://github.com/theos/theos.git ~/theos
+          echo "THEOS=$HOME/theos" >> $GITHUB_ENV
+          sudo apt update && sudo apt install -y clang lld git make
+      - name: Build Tweak
+        run: |
+          export THEOS=$HOME/theos
+          make package
+      - name: Upload deb
+        uses: actions/upload-artifact@v4
+        with:
+          path: debs/*.deb
+      - name: Release
+        uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: debs/*.deb
