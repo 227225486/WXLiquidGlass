@@ -7,41 +7,15 @@ on:
 jobs:
   build:
     runs-on: macos-latest
-    env:
-      THEOS: $HOME/theos
     steps:
-      - name: Checkout source
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Cache Theos
-        uses: actions/cache@v4
-        with:
-          path: ~/theos
-          key: macos-theos-v3
+      # 现成封装好的Theos Action，自动拉完整theos，自带工具链
+      - name: Setup Theos
+        uses: hbang/setup-theos@v1
 
-      - name: Install Homebrew dependencies
-        run: |
-          brew install git make perl
-        shell: bash
-
-      - name: Install Theos (only cache miss)
-        if: steps.cache.outputs.cache-hit != 'true'
-        run: |
-          bash -c "$(curl -fsSL https://raw.githubusercontent.com/theos/theos/master/bin/install-theos)"
-        shell: bash
-
-      - name: Debug print THEOS path and list files
-        run: |
-          export THEOS=$HOME/theos
-          echo "THEOS=$THEOS"
-          ls -la $THEOS/makefiles/ || echo "makefiles folder missing, Theos install failed!"
-        shell: bash
-
-      - name: Build Tweak
-        run: |
-          export THEOS=$HOME/theos
-          make package FINALPACKAGE=1
-        shell: bash
+      - name: Build
+        run: make package FINALPACKAGE=1
 
       - name: Upload deb
         uses: actions/upload-artifact@v4
