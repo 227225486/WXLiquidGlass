@@ -28,8 +28,8 @@ static void lg_loadPrefs(void) {
 
 static void lg_notify(CFNotificationCenterRef center, void *observer, CFStringRef name, const void *object, CFDictionaryRef userInfo) {
     lg_loadPrefs();
-    
-    // iOS 15 - iOS 26 兼容的窗口获取与重绘方式
+
+    // iOS 15+ 兼容的窗口获取方式
     UIWindow *targetWindow = nil;
     NSSet *scenes = [UIApplication sharedApplication].connectedScenes;
     for (UIWindowScene *scene in scenes) {
@@ -59,58 +59,53 @@ static BOOL lg_isiOS26(void) {
 }
 
 // ========================
-// 底栏（UITabBar）
+// 静态辅助函数（避免 %new 声明问题）
 // ========================
-%hook UITabBar
 
-- (void)didMoveToWindow {
-    %orig;
-    if (!lg_cfg.enabled || !lg_cfg.tabBarEnabled) return;
-    [self lg_applyGlass];
+static void lg_clearBar(UIView *bar) {
+    bar.backgroundColor = UIColor.clearColor;
+    bar.tintColor = UIColor.clearColor;
+    bar.opaque = NO;
+
+    if ([bar respondsToSelector:@selector(setBackgroundImage:forBarMetrics:)])
+        [(id)bar setBackgroundImage:[UIImage new] forBarMetrics:UIBarMetricsDefault];
+    if ([bar respondsToSelector:@selector(setShadowImage:)])
+        [(id)bar setShadowImage:[UIImage new]];
 }
 
-- (void)layoutSubviews {
-    %orig;
-    if (!lg_cfg.enabled || !lg_cfg.tabBarEnabled) return;
-    [self lg_applyGlass];
-}
+static void lg_applyGlassToTabBar(UITabBar *bar) {
+    lg_clearBar(bar);
 
-%new
-- (void)lg_applyGlass {
-    // 1. 清空微信自带背景
-    self.backgroundColor = UIColor.clearColor;
-    self.tintColor = UIColor.clearColor;
-    self.opaque = NO;
-    [self setBackgroundImage:[UIImage new] forBarMetrics:UIBarMetricsDefault];
-    [self setShadowImage:[UIImage new]];
-    
-    // 2. 清空 iOS 13+ Appearance (使用 UITabBarAppearance)
+    // iOS 13+ appearance（使用 NSClassFromString 避免旧 SDK 编译警告）
     if (@available(iOS 13.0, *)) {
-        id ap = [[NSClassFromString(@"UITabBarAppearance") alloc] init];
-        if ([ap respondsToSelector:@selector(configureWithTransparentBackground)]) {
-            [ap performSelector:@selector(configureWithTransparentBackground)];
-        }
-        if ([self respondsToSelector:@selector(setStandardAppearance:)]) {
-            [self performSelector:@selector(setStandardAppearance:) withObject:ap];
-        }
-        if ([self respondsToSelector:@selector(setScrollEdgeAppearance:)]) {
-            [self performSelector:@selector(setScrollEdgeAppearance:) withObject:ap];
+        id tabBarApClass = NSClassFromString(@"UITabBarAppearance");
+        if (tabBarApClass) {
+            id ap = [tabBarApClass alloc] init];
+            if ([ap respondsToSelector:@selector(configureWithTransparentBackground)]) {
+                [ap performSelector:@selector(configureWithTransparentBackground)];
+            }
+            if ([bar respondsToSelector:@selector(setStandardAppearance:)]) {
+                [bar performSelector:@selector(setStandardAppearance:) withObject:ap];
+            }
+            if ([bar respondsToSelector:@selector(setScrollEdgeAppearance:)]) {
+                [bar performSelector:@selector(setScrollEdgeAppearance:) withObject:ap];
+            }
         }
     }
 
-    // 3. iOS 26+ 系统原生液态玻璃（到此为止，不叠层）
+    // iOS 26+ 系统原生液态玻璃（到此为止，不叠层）
     if (lg_isiOS26()) return;
     if (lg_cfg.intensity <= 0.01) return;
 
-    // 4. 低版本降级：材质毛玻璃
-    for (UIView *v in self.subviews) {
+    // 低版本降级：材质毛玻璃
+    for (UIView *v in bar.subviews) {
         if (v.tag == 7788) [v removeFromSuperview];
     }
 
     UIBlurEffect *effect = [UIBlurEffect effectWithStyle:UIBlurEffectStyleSystemThinMaterial];
     UIVisualEffectView *glass = [[UIVisualEffectView alloc] initWithEffect:effect];
     glass.tag = 7788;
-    glass.frame = self.bounds;
+    glass.frame = bar.bounds;
     glass.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
     glass.alpha = lg_cfg.intensity;
 
@@ -120,11 +115,75 @@ static BOOL lg_isiOS26(void) {
     [glass.contentView addSubview:tint];
 
     CALayer *line = [CALayer layer];
-    line.frame = CGRectMake(0, 0, self.bounds.size.width, 1.0 / [UIScreen mainScreen].scale);
+    line.frame = CGRectMake(0, 0, bar.bounds.size.width, 1.0 / [UIScreen mainScreen].scale);
     line.backgroundColor = [UIColor.whiteColor colorWithAlphaComponent:0.30].CGColor;
     [glass.layer addSublayer:line];
 
-    [self insertSubview:glass atIndex:0];
+    [bar insertSubview:glass atIndex:0];
+}
+
+static void lg_applyGlassToNavBar(UINavigationBar *bar) {
+    lg_clearBar(bar);
+
+    // iOS 13+ appearance
+    if (@available(iOS 13.0, *)) {
+        id navBarApClass = NSClassFromString(@"UINavigationBarAppearance");
+        if (navBarApClass) {
+            id ap = [navBarApClass alloc] init];
+            if ([ap respondsToSelector:@selector(configureWithTransparentBackground)]) {
+                [ap performSelector:@selector(configureWithTransparentBackground)];
+            }
+            if ([bar respondsToSelector:@selector(setStandardAppearance:)]) {
+                [bar performSelector:@selector(setStandardAppearance:) withObject:ap];
+            }
+            if ([bar respondsToSelector:@selector(setScrollEdgeAppearance:)]) {
+                [bar performSelector:@selector(setScrollEdgeAppearance:) withObject:ap];
+            }
+            if ([bar respondsToSelector:@selector(setCompactAppearance:)]) {
+                [bar performSelector:@selector(setCompactAppearance:) withObject:ap];
+            }
+        }
+    }
+
+    // iOS 26+ 系统原生液态玻璃
+    if (lg_isiOS26()) return;
+    if (lg_cfg.intensity <= 0.01) return;
+
+    // 低版本降级：材质毛玻璃
+    for (UIView *v in bar.subviews) {
+        if (v.tag == 7789) [v removeFromSuperview];
+    }
+
+    UIBlurEffect *effect = [UIBlurEffect effectWithStyle:UIBlurEffectStyleSystemThinMaterial];
+    UIVisualEffectView *glass = [[UIVisualEffectView alloc] initWithEffect:effect];
+    glass.tag = 7789;
+    glass.frame = bar.bounds;
+    glass.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
+    glass.alpha = lg_cfg.intensity;
+
+    UIView *tint = [[UIView alloc] initWithFrame:glass.bounds];
+    tint.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
+    tint.backgroundColor = [UIColor.whiteColor colorWithAlphaComponent:0.08 * lg_cfg.intensity];
+    [glass.contentView addSubview:tint];
+
+    [bar insertSubview:glass atIndex:0];
+}
+
+// ========================
+// 底栏（UITabBar）
+// ========================
+%hook UITabBar
+
+- (void)didMoveToWindow {
+    %orig;
+    if (!lg_cfg.enabled || !lg_cfg.tabBarEnabled) return;
+    lg_applyGlassToTabBar(self);
+}
+
+- (void)layoutSubviews {
+    %orig;
+    if (!lg_cfg.enabled || !lg_cfg.tabBarEnabled) return;
+    lg_applyGlassToTabBar(self);
 }
 
 %end
@@ -137,63 +196,13 @@ static BOOL lg_isiOS26(void) {
 - (void)didMoveToWindow {
     %orig;
     if (!lg_cfg.enabled || !lg_cfg.navBarEnabled) return;
-    [self lg_applyGlass];
+    lg_applyGlassToNavBar(self);
 }
 
 - (void)layoutSubviews {
     %orig;
     if (!lg_cfg.enabled || !lg_cfg.navBarEnabled) return;
-    [self lg_applyGlass];
-}
-
-%new
-- (void)lg_applyGlass {
-    // 1. 清空微信自带背景
-    self.backgroundColor = UIColor.clearColor;
-    self.tintColor = UIColor.clearColor;
-    self.opaque = NO;
-    [self setBackgroundImage:[UIImage new] forBarMetrics:UIBarMetricsDefault];
-    [self setShadowImage:[UIImage new]];
-    
-    // 2. 清空 iOS 13+ Appearance (使用 UINavigationBarAppearance)
-    if (@available(iOS 13.0, *)) {
-        id ap = [[NSClassFromString(@"UINavigationBarAppearance") alloc] init];
-        if ([ap respondsToSelector:@selector(configureWithTransparentBackground)]) {
-            [ap performSelector:@selector(configureWithTransparentBackground)];
-        }
-        if ([self respondsToSelector:@selector(setStandardAppearance:)]) {
-            [self performSelector:@selector(setStandardAppearance:) withObject:ap];
-        }
-        if ([self respondsToSelector:@selector(setScrollEdgeAppearance:)]) {
-            [self performSelector:@selector(setScrollEdgeAppearance:) withObject:ap];
-        }
-        if ([self respondsToSelector:@selector(setCompactAppearance:)]) {
-            [self performSelector:@selector(setCompactAppearance:) withObject:ap];
-        }
-    }
-
-    // 3. iOS 26+ 系统原生液态玻璃（到此为止，不叠层）
-    if (lg_isiOS26()) return;
-    if (lg_cfg.intensity <= 0.01) return;
-
-    // 4. 低版本降级：材质毛玻璃
-    for (UIView *v in self.subviews) {
-        if (v.tag == 7789) [v removeFromSuperview];
-    }
-
-    UIBlurEffect *effect = [UIBlurEffect effectWithStyle:UIBlurEffectStyleSystemThinMaterial];
-    UIVisualEffectView *glass = [[UIVisualEffectView alloc] initWithEffect:effect];
-    glass.tag = 7789;
-    glass.frame = self.bounds;
-    glass.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
-    glass.alpha = lg_cfg.intensity;
-
-    UIView *tint = [[UIView alloc] initWithFrame:glass.bounds];
-    tint.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
-    tint.backgroundColor = [UIColor.whiteColor colorWithAlphaComponent:0.08 * lg_cfg.intensity];
-    [glass.contentView addSubview:tint];
-
-    [self insertSubview:glass atIndex:0];
+    lg_applyGlassToNavBar(self);
 }
 
 %end
