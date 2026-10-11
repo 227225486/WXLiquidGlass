@@ -59,6 +59,16 @@ static BOOL lg_isiOS26(void) {
 }
 
 // ========================
+// 辅助函数：遍历 subviews 检查 tag（替代 subviewWithTag:）
+// ========================
+static UIView *lg_findViewWithTag(UIView *parent, NSInteger tag) {
+    for (UIView *v in parent.subviews) {
+        if (v.tag == tag) return v;
+    }
+    return nil;
+}
+
+// ========================
 // 静态辅助函数
 // ========================
 
@@ -176,7 +186,8 @@ static void lg_applyGlassToNavBar(UINavigationBar *bar) {
 - (void)didMoveToWindow {
     %orig;
     if (!lg_cfg.enabled || !lg_cfg.tabBarEnabled) return;
-    if (![self subviewWithTag:7788]) {
+    // 用 lg_findViewWithTag 替代 subviewWithTag:
+    if (![lg_findViewWithTag(self, 7788)]) {
         lg_applyGlassToTabBar(self);
     }
 }
@@ -184,7 +195,8 @@ static void lg_applyGlassToNavBar(UINavigationBar *bar) {
 - (void)layoutSubviews {
     %orig;
     if (!lg_cfg.enabled || !lg_cfg.tabBarEnabled) return;
-    if ([self subviewWithTag:7788]) return;
+    // 毛玻璃已存在则跳过，避免启动崩溃
+    if ([lg_findViewWithTag(self, 7788)]) return;
     lg_applyGlassToTabBar(self);
 }
 
@@ -198,7 +210,7 @@ static void lg_applyGlassToNavBar(UINavigationBar *bar) {
 - (void)didMoveToWindow {
     %orig;
     if (!lg_cfg.enabled || !lg_cfg.navBarEnabled) return;
-    if (![self subviewWithTag:7789]) {
+    if (![lg_findViewWithTag(self, 7789)]) {
         lg_applyGlassToNavBar(self);
     }
 }
@@ -206,7 +218,7 @@ static void lg_applyGlassToNavBar(UINavigationBar *bar) {
 - (void)layoutSubviews {
     %orig;
     if (!lg_cfg.enabled || !lg_cfg.navBarEnabled) return;
-    if ([self subviewWithTag:7789]) return;
+    if ([lg_findViewWithTag(self, 7789)]) return;
     lg_applyGlassToNavBar(self);
 }
 
