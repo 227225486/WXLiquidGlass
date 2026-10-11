@@ -4,7 +4,6 @@
 //
 
 #import "CCLiquidGlassView.h"
-#import <objc/message.h>
 
 @interface CCLiquidGlassView ()
 @property (nonatomic, strong, readwrite) UIVisualEffectView *blurEffectView;
@@ -61,22 +60,22 @@
 #pragma mark - 组装玻璃层
 
 - (void)buildGlassLayers {
-    // 1) 模糊/液态玻璃层
-    UIVisualEffect *effect = [self glassEffect];
+    // 1) 模糊 / 液态玻璃层
+    UIVisualEffect *effect = [self makeGlassEffect];
     _blurEffectView = [[UIVisualEffectView alloc] initWithEffect:effect];
     _blurEffectView.userInteractionEnabled = NO;
     _blurEffectView.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
     _blurEffectView.frame = self.bounds;
     [self addSubview:_blurEffectView];
 
-    // 2) 主渐变层（液态渐变底色）
+    // 2) 主渐变层
     _gradientLayer = [CAGradientLayer layer];
     _gradientLayer.type = kCAGradientLayerAxial;
     _gradientLayer.startPoint = CGPointMake(0.0, 0.0);
     _gradientLayer.endPoint = CGPointMake(1.0, 1.0);
     [self.blurEffectView.contentView.layer addSublayer:_gradientLayer];
 
-    // 3) 顶部高光层（边缘光感）
+    // 3) 顶部高光层
     _highlightLayer = [CAGradientLayer layer];
     _highlightLayer.type = kCAGradientLayerAxial;
     _highlightLayer.startPoint = CGPointMake(0.0, 0.0);
@@ -88,20 +87,17 @@
     _highlightLayer.hidden = YES;
     [self.blurEffectView.contentView.layer addSublayer:_highlightLayer];
 
-    [self applyDefaultG {
-radientColors];
+    [self applyDefaultGradientColors];
     [self setNeedsLayout];
 }
 
-// iOS 26+ 使用 UIGlassEffect（真正的系统液态玻璃）；低版本降级为毛玻璃
-- (UIVisualEffect *)glassEffect {
-    Class glassClass = NSClassFromString(@"UIGlassEffect");
-    if (glassClass)        SEL sel = NSSelectorFromString(@"effectWithStyle:");
-        if ([glassClass respondsToSelector:sel]) {
-            id effect = ((id (*)(id, SEL, NSInteger))objc_msgSend)(glassClass, sel, 0);
-            if (effect) return effect;
-        }
+// 使用系统液态玻璃；低版本降级为毛玻璃
+- (UIVisualEffect *)makeGlassEffect {
+#if __IPHONE_OS_VERSION_MAX_ALLOWED >= 260000
+    if (@available(iOS 26.0, *)) {
+        return [UIGlassEffect effectWithStyle:UIGlassEffectStyleRegular];
     }
+#endif
     return [UIBlurEffect effectWithStyle:UIBlurEffectStyleSystemThinMaterial];
 }
 
@@ -125,12 +121,14 @@ radientColors];
                 (id)[UIColor colorWithWhite:0.94 alpha:0.30].CGColor
             ];
             break;
+        default:
+            break;
     }
 }
 
 - (void)configureDefaultAppearance {
     [self applyDefaultGradientColors];
-    _highlightLayer.hidden = (_glassStyle == CCLiquidGlassStyleChatBubble) ? NO : NO;
+    _highlightLayer.hidden = NO;
     [self setNeedsLayout];
 }
 
@@ -139,10 +137,13 @@ radientColors];
 - (void)layoutSubviews {
     [super layoutSubviews];
     CGRect b = self.bounds;
-    if (CGRectIsEmpty(b)) return;
+    if (CGRectIsEmpty(b)) {
+        return;
+    }
 
     _blurEffectView.frame = b;
     _gradientLayer.frame = b;
+
     CGFloat h = MIN(2.0, CGRectGetHeight(b) * 0.35);
     _highlightLayer.frame = CGRectMake(0.0, 0.0, CGRectGetWidth(b), h);
 }
@@ -150,7 +151,9 @@ radientColors];
 #pragma mark - 挂载
 
 - (void)attachToHostView:(UIView *)hostView insets:(UIEdgeInsets)insets {
-    if (!hostView) return;
+    if (!hostView) {
+        return;
+    }
     if (self.superview != hostView) {
         [hostView insertSubview:self atIndex:0];
     }
@@ -158,7 +161,9 @@ radientColors];
 }
 
 - (void)refreshLayoutForHostView:(UIView *)hostView insets:(UIEdgeInsets)insets {
-    if (!hostView) return;
+    if (!hostView) {
+        return;
+    }
     self.frame = UIEdgeInsetsInsetRect(hostView.bounds, insets);
     [self setNeedsLayout];
 }
