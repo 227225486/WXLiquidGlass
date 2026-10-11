@@ -1,9 +1,10 @@
 #import <UIKit/UIKit.h>
 #import <Foundation/Foundation.h>
 #import <rootless.h>
+#include <objc/runtime.h>
 
 // ========================
-// 偏好缓存
+// 偏好读写
 // ========================
 static struct {
     BOOL enabled;
@@ -12,35 +13,38 @@ static struct {
     CGFloat intensity;
 } lg_cfg;
 
-static void lg_loadPrefs(void) {
-    NSString *path = ROOT_PATH_NS(@"/var/mobile/Library/Preferences/com.k.liquidglasshook.plist");
-    NSDictionary *p = [NSDictionary dictionaryWithContentsOfFile:path] ?: @{};
+static NSString *lg_prefPath(void) {
+    return ROOT_PATH_NS(@"/var/mobile/Library/Preferences/com.k.liquidglasshook.plist");
+}
 
+static NSMutableDictionary *lg_readPrefs(void) {
+    NSMutableDictionary *p = [[NSMutableDictionary alloc] initWithContentsOfFile:lg_prefPath()];
+    return p ?: [NSMutableDictionary dictionary];
+}
+
+static void lg_writePrefs(NSMutableDictionary *p) {
+    [p writeToFile:lg_prefPath() atomically:YES];
+}
+
+static void lg_loadPrefs(void) {
+    NSDictionary *p = [NSDictionary dictionaryWithContentsOfFile:lg_prefPath()] ?: @{};
     lg_cfg.enabled       = (p[@"enabled"] == nil)       ? YES : [p[@"enabled"] boolValue];
     lg_cfg.tabBarEnabled = (p[@"tabBarEnabled"] == nil) ? YES : [p[@"tabBarEnabled"] boolValue];
     lg_cfg.navBarEnabled = (p[@"navBarEnabled"] == nil) ? YES : [p[@"navBarEnabled"] boolValue];
-
     id iv = p[@"intensity"];
     lg_cfg.intensity = (iv && [iv isKindOfClass:[NSNumber class]]) ? [iv doubleValue] : 0.7;
     if (lg_cfg.intensity < 0.0) lg_cfg.intensity = 0.0;
     if (lg_cfg.intensity > 1.0) lg_cfg.intensity = 1.0;
 }
 
-static void lg_notify(CFNotificationCenterRef center, void *observer, CFStringRef name, const void *object, CFDictionaryRef userInfo) {
+static void lg_notify(void) {
     lg_loadPrefs();
-
-    UIWindow *targetWindow = nil;
     NSSet *scenes = [UIApplication sharedApplication].connectedScenes;
-    for (UIWindowScene *scene in scenes) {
-        if (scene.activationState == UISceneActivationStateForegroundActive) {
-            if (scene.windows.count > 0) {
-                targetWindow = scene.windows.firstObject;
-                break;
-            }
+    for (UIWindowScene *s in scenes) {
+        if (s.activationState == UISceneActivationStateForegroundActive && s.windows.count) {
+            [s.windows.firstObject setNeedsLayout];
+            break;
         }
-    }
-    if (targetWindow) {
-        [targetWindow setNeedsLayout];
     }
 }
 
@@ -48,9 +52,8 @@ __attribute__((constructor))
 static void lg_init(void) {
     lg_loadPrefs();
     CFNotificationCenterAddObserver(CFNotificationCenterGetDarwinNotifyCenter(),
-                                    NULL, lg_notify,
-                                    CFSTR("com.k.liquidglasshook/reload"),
-                                    NULL, CFNotificationSuspensionBehaviorCoalesce);
+        NULL, (void *)lg_notify, CFSTR("com.k.liquidglasshook/reload"),
+        NULL, CFNotificationSuspensionBehaviorCoalesce);
 }
 
 static BOOL lg_isiOS26(void) {
@@ -58,151 +61,179 @@ static BOOL lg_isiOS26(void) {
 }
 
 // ========================
-// 底栏液态玻璃
-// ========================
-static void lg_applyGlassToTabBar(UITabBar *bar) {
-    if (lg_isiOS26()) return;
-    if (lg_cfg.intensity <= 0.01) return;
-
-    bar.backgroundColor = UIColor.clearColor;
-    bar.tintColor = UIColor.clearColor;
-    bar.opaque = NO;
-
-    if ([bar respondsToSelector:@selector(setBackgroundImage:forBarMetrics:)])
-        [(id)bar setBackgroundImage:[UIImage new] forBarMetrics:UIBarMetricsDefault];
-    if ([bar respondsToSelector:@selector(setShadowImage:)])
-        [(id)bar setShadowImage:[UIImage new]];
-
-    if (@available(iOS 13.0, *)) {
-        id tabBarApClass = NSClassFromString(@"UITabBarAppearance");
-        if (tabBarApClass) {
-            id ap = [[tabBarApClass alloc] init];
-            if ([ap respondsToSelector:@selector(configureWithTransparentBackground)]) {
-                [ap performSelector:@selector(configureWithTransparentBackground)];
-            }
-            if ([bar respondsToSelector:@selector(setStandardAppearance:)]) {
-                [bar performSelector:@selector(setStandardAppearance:) withObject:ap];
-            }
-            if ([bar respondsToSelector:@selector(setScrollEdgeAppearance:)]) {
-                [bar performSelector:@selector(setScrollEdgeAppearance:) withObject:ap];
-            }
-        }
-    }
-
-    for (UIView *v in bar.subviews) {
-        if (v.tag == 7788) [v removeFromSuperview];
-    }
-
-    UIBlurEffect *effect = [UIBlurEffect effectWithStyle:UIBlurEffectStyleSystemThinMaterial];
-    UIVisualEffectView *glass = [[UIVisualEffectView alloc] initWithEffect:effect];
-    glass.tag = 7788;
-    glass.frame = bar.bounds;
-    glass.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
-    glass.alpha = lg_cfg.intensity;
-
-    UIView *tint = [[UIView alloc] initWithFrame:glass.bounds];
-    tint.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
-    tint.backgroundColor = [UIColor.whiteColor colorWithAlphaComponent:0.10 * lg_cfg.intensity];
-    [glass.contentView addSubview:tint];
-
-    CALayer *line = [CALayer layer];
-    line.frame = CGRectMake(0, 0, bar.bounds.size.width, 1.0 / [UIScreen mainScreen].scale);
-    line.backgroundColor = [UIColor.whiteColor colorWithAlphaComponent:0.30].CGColor;
-    [glass.layer addSublayer:line];
-
-    [bar insertSubview:glass atIndex:0];
-}
-
-// ========================
-// 顶栏液态玻璃
-// ========================
-static void lg_applyGlassToNavBar(UINavigationBar *bar) {
-    if (lg_isiOS26()) return;
-    if (lg_cfg.intensity <= 0.01) return;
-
-    bar.backgroundColor = UIColor.clearColor;
-    bar.tintColor = UIColor.clearColor;
-    bar.opaque = NO;
-
-    if ([bar respondsToSelector:@selector(setBackgroundImage:forBarMetrics:)])
-        [(id)bar setBackgroundImage:[UIImage new] forBarMetrics:UIBarMetricsDefault];
-    if ([bar respondsToSelector:@selector(setShadowImage:)])
-        [(id)bar setShadowImage:[UIImage new]];
-
-    if (@available(iOS 13.0, *)) {
-        id navBarApClass = NSClassFromString(@"UINavigationBarAppearance");
-        if (navBarApClass) {
-            id ap = [[navBarApClass alloc] init];
-            if ([ap respondsToSelector:@selector(configureWithTransparentBackground)]) {
-                [ap performSelector:@selector(configureWithTransparentBackground)];
-            }
-            if ([bar respondsToSelector:@selector(setStandardAppearance:)]) {
-                [bar performSelector:@selector(setStandardAppearance:) withObject:ap];
-            }
-            if ([bar respondsToSelector:@selector(setScrollEdgeAppearance:)]) {
-                [bar performSelector:@selector(setScrollEdgeAppearance:) withObject:ap];
-            }
-            if ([bar respondsToSelector:@selector(setCompactAppearance:)]) {
-                [bar performSelector:@selector(setCompactAppearance:) withObject:ap];
-            }
-        }
-    }
-
-    for (UIView *v in bar.subviews) {
-        if (v.tag == 7789) [v removeFromSuperview];
-    }
-
-    UIBlurEffect *effect = [UIBlurEffect effectWithStyle:UIBlurEffectStyleSystemThinMaterial];
-    UIVisualEffectView *glass = [[UIVisualEffectView alloc] initWithEffect:effect];
-    glass.tag = 7789;
-    glass.frame = bar.bounds;
-    glass.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
-    glass.alpha = lg_cfg.intensity;
-
-    UIView *tint = [[UIView alloc] initWithFrame:glass.bounds];
-    tint.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
-    tint.backgroundColor = [UIColor.whiteColor colorWithAlphaComponent:0.08 * lg_cfg.intensity];
-    [glass.contentView addSubview:tint];
-
-    [bar insertSubview:glass atIndex:0];
-}
-
-// ========================
 // 底栏
 // ========================
-%hook UITabBar
-
-- (void)didMoveToWindow {
-    %orig;
-    if (!lg_cfg.enabled || !lg_cfg.tabBarEnabled) return;
-
-    __weak UITabBar *weakBar = self;
-    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(2.0 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
-        UITabBar *bar = weakBar;
-        if (!bar) return;
-        if (!lg_cfg.enabled || !lg_cfg.tabBarEnabled) return;
-        lg_applyGlassToTabBar(bar);
-    });
+static void lg_applyTab(UITabBar *bar) {
+    if (lg_isiOS26()) return;
+    if (lg_cfg.intensity <= 0.01) return;
+    bar.backgroundColor = UIColor.clearColor;
+    bar.tintColor = UIColor.clearColor;
+    bar.opaque = NO;
+    if ([bar respondsToSelector:@selector(setBackgroundImage:forBarMetrics:)])
+        [(id)bar setBackgroundImage:[UIImage new] forBarMetrics:UIBarMetricsDefault];
+    if ([bar respondsToSelector:@selector(setShadowImage:)])
+        [(id)bar setShadowImage:[UIImage new]];
+    if (@available(iOS 13.0, *)) {
+        id c = NSClassFromString(@"UITabBarAppearance");
+        if (c) {
+            id ap = [[c alloc] init];
+            if ([ap respondsToSelector:@selector(configureWithTransparentBackground)])
+                [ap performSelector:@selector(configureWithTransparentBackground)];
+            if ([bar respondsToSelector:@selector(setStandardAppearance:)])
+                [bar performSelector:@selector(setStandardAppearance:) withObject:ap];
+            if ([bar respondsToSelector:@selector(setScrollEdgeAppearance:)])
+                [bar performSelector:@selector(setScrollEdgeAppearance:) withObject:ap];
+        }
+    }
+    for (UIView *v in bar.subviews) if (v.tag == 7788) [v removeFromSuperview];
+    UIVisualEffectView *g = [[UIVisualEffectView alloc] initWithEffect:[UIBlurEffect effectWithStyle:UIBlurEffectStyleSystemThinMaterial]];
+    g.tag = 7788; g.frame = bar.bounds;
+    g.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
+    g.alpha = lg_cfg.intensity;
+    UIView *t = [[UIView alloc] initWithFrame:g.bounds];
+    t.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
+    t.backgroundColor = [UIColor.whiteColor colorWithAlphaComponent:0.10 * lg_cfg.intensity];
+    [g.contentView addSubview:t];
+    CALayer *ln = [CALayer layer];
+    ln.frame = CGRectMake(0, 0, bar.bounds.size.width, 1.0/[UIScreen mainScreen].scale);
+    ln.backgroundColor = [UIColor.whiteColor colorWithAlphaComponent:0.30].CGColor;
+    [g.layer addSublayer:ln];
+    [bar insertSubview:g atIndex:0];
 }
-
-%end
 
 // ========================
 // 顶栏
 // ========================
-%hook UINavigationBar
+static void lg_applyNav(UINavigationBar *bar) {
+    if (lg_isiOS26()) return;
+    if (lg_cfg.intensity <= 0.01) return;
+    bar.backgroundColor = UIColor.clearColor;
+    bar.tintColor = UIColor.clearColor;
+    bar.opaque = NO;
+    if ([bar respondsToSelector:@selector(setBackgroundImage:forBarMetrics:)])
+        [(id)bar setBackgroundImage:[UIImage new] forBarMetrics:UIBarMetricsDefault];
+    if ([bar respondsToSelector:@selector(setShadowImage:)])
+        [(id)bar setShadowImage:[UIImage new]];
+    if (@available(iOS 13.0, *)) {
+        id c = NSClassFromString(@"UINavigationBarAppearance");
+        if (c) {
+            id ap = [[c alloc] init];
+            if ([ap respondsToSelector:@selector(configureWithTransparentBackground)])
+                [ap performSelector:@selector(configureWithTransparentBackground)];
+            if ([bar respondsToSelector:@selector(setStandardAppearance:)])
+                [bar performSelector:@selector(setStandardAppearance:) withObject:ap];
+            if ([bar respondsToSelector:@selector(setScrollEdgeAppearance:)])
+                [bar performSelector:@selector(setScrollEdgeAppearance:) withObject:ap];
+            if ([bar respondsToSelector:@selector(setCompactAppearance:)])
+                [bar performSelector:@selector(setCompactAppearance:) withObject:ap];
+        }
+    }
+    for (UIView *v in bar.subviews) if (v.tag == 7789) [v removeFromSuperview];
+    UIVisualEffectView *g = [[UIVisualEffectView alloc] initWithEffect:[UIBlurEffect effectWithStyle:UIBlurEffectStyleSystemThinMaterial]];
+    g.tag = 7789; g.frame = bar.bounds;
+    g.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
+    g.alpha = lg_cfg.intensity;
+    UIView *t = [[UIView alloc] initWithFrame:g.bounds];
+    t.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
+    t.backgroundColor = [UIColor.whiteColor colorWithAlphaComponent:0.08 * lg_cfg.intensity];
+    [g.contentView addSubview:t];
+    [bar insertSubview:g atIndex:0];
+}
 
+%hook UITabBar
+- (void)didMoveToWindow {
+    %orig;
+    if (!lg_cfg.enabled || !lg_cfg.tabBarEnabled) return;
+    __weak UITabBar *wb = self;
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(2.0 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+        if (!wb || !lg_cfg.enabled || !lg_cfg.tabBarEnabled) return;
+        lg_applyTab(wb);
+    });
+}
+%end
+
+%hook UINavigationBar
 - (void)didMoveToWindow {
     %orig;
     if (!lg_cfg.enabled || !lg_cfg.navBarEnabled) return;
-
-    __weak UINavigationBar *weakBar = self;
+    __weak UINavigationBar *wb = self;
     dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(2.0 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
-        UINavigationBar *bar = weakBar;
-        if (!bar) return;
-        if (!lg_cfg.enabled || !lg_cfg.navBarEnabled) return;
-        lg_applyGlassToNavBar(bar);
+        if (!wb || !lg_cfg.enabled || !lg_cfg.navBarEnabled) return;
+        lg_applyNav(wb);
     });
 }
+%end
 
+// ========================
+// 微信内设置入口（不依赖类名，认 title）
+// ========================
+@interface UIView (LGRow)
+- (void)lg_tapped;
+@end
+@implementation UIView (LGRow)
+- (void)lg_tapped {
+    UISwitch *sw = objc_getAssociatedObject(self, @"sw");
+    void (^blk)(BOOL) = (__bridge void (^)(BOOL))objc_getAssociatedObject(self, @"blk");
+    if (sw && blk) { BOOL n = !sw.isOn; sw.on = n; blk(n); }
+}
+@end
+
+static UIView *lg_row(BOOL on, void (^blk)(BOOL)) {
+    CGFloat w = [UIScreen mainScreen].bounds.size.width;
+    UIView *row = [[UIView alloc] initWithFrame:CGRectMake(0, 0, w, 44)];
+    row.backgroundColor = (@available(iOS 13.0, *)) ? UIColor.systemBackgroundColor : UIColor.whiteColor;
+    UILabel *lbl = [[UILabel alloc] initWithFrame:CGRectMake(16, 0, w - 90, 44)];
+    lbl.text = @"液态玻璃"; lbl.font = [UIFont systemFontOfSize:16];
+    lbl.textColor = UIColor.labelColor ?: UIColor.blackColor;
+    [row addSubview:lbl];
+    UISwitch *sw = [[UISwitch alloc] init];
+    sw.on = on; sw.center = CGPointMake(w - 32, 22);
+    [row addSubview:sw];
+    UIView *sep = [[UIView alloc] initWithFrame:CGRectMake(16, 43.5, w - 32, 0.5)];
+    sep.backgroundColor = [UIColor.grayColor colorWithAlphaComponent:0.35];
+    sep.autoresizingMask = UIViewAutoresizingFlexibleWidth;
+    [row addSubview:sep];
+    objc_setAssociatedObject(row, @"sw", sw, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+    objc_setAssociatedObject(row, @"blk", (__bridge id)blk, OBJC_ASSOCIATION_COPY);
+    row.userInteractionEnabled = YES;
+    [row addGestureRecognizer:[[UITapGestureRecognizer alloc] initWithTarget:row action:@selector(lg_tapped)]];
+    return row;
+}
+
+%hook UIViewController
+- (void)viewWillAppear:(BOOL)animated {
+    %orig;
+    NSString *t = self.title ?: @"";
+    // 只认「设置」页；如果你微信是繁体/英文，改成 @"設定" / @"Settings"
+    if (![t isEqualToString:@"设置"] && ![t isEqualToString:@"設定"] && ![t isEqualToString:@"Settings"]) return;
+    UITableView *tv = nil;
+    if ([self isKindOfClass:%c(UITableViewController)]) tv = [(id)self tableView];
+    else if ([self respondsToSelector:@selector(tableView)]) tv = [self valueForKey:@"tableView"];
+    if (!tv) return;
+    if ([tv tableHeaderView] && [tv tableHeaderView].tag == 9901) return;   // 已注入，跳过
+
+    CGFloat w = [UIScreen mainScreen].bounds.size.width;
+    UIView *box = [[UIView alloc] initWithFrame:CGRectMake(0, 0, w, 44)];
+    box.tag = 9901;
+    box.backgroundColor = (@available(iOS 13.0, *)) ? UIColor.systemGroupedBackgroundColor : [UIColor colorWithRed:0.95 green:0.95 blue:0.95 alpha:1];
+
+    UIView *r = lg_row(lg_cfg.enabled, ^(BOOL on) {
+        NSMutableDictionary *p = lg_readPrefs();
+        p[@"enabled"] = @(on);
+        lg_writePrefs(p);
+        lg_notify();
+    });
+    r.frame = CGRectMake(0, 0, w, 44);
+    r.autoresizingMask = UIViewAutoresizingFlexibleWidth;
+    [box addSubview:r];
+
+    UIView *old = [tv tableHeaderView];
+    if (old) {
+        old.frame = CGRectMake(0, 44, w, old.bounds.size.height);
+        old.autoresizingMask = UIViewAutoresizingFlexibleWidth;
+        [box addSubview:old];
+        box.frame = CGRectMake(0, 0, w, 44 + old.bounds.size.height);
+    }
+    [tv setTableHeaderView:box];
+}
 %end
