@@ -29,7 +29,6 @@ static void lg_loadPrefs(void) {
 static void lg_notify(CFNotificationCenterRef center, void *observer, CFStringRef name, const void *object, CFDictionaryRef userInfo) {
     lg_loadPrefs();
 
-    // iOS 15+ 兼容的窗口获取方式
     UIWindow *targetWindow = nil;
     NSSet *scenes = [UIApplication sharedApplication].connectedScenes;
     for (UIWindowScene *scene in scenes) {
@@ -65,7 +64,6 @@ static void lg_applyGlassToTabBar(UITabBar *bar) {
     if (lg_isiOS26()) return;
     if (lg_cfg.intensity <= 0.01) return;
 
-    // 清空背景
     bar.backgroundColor = UIColor.clearColor;
     bar.tintColor = UIColor.clearColor;
     bar.opaque = NO;
@@ -75,7 +73,6 @@ static void lg_applyGlassToTabBar(UITabBar *bar) {
     if ([bar respondsToSelector:@selector(setShadowImage:)])
         [(id)bar setShadowImage:[UIImage new]];
 
-    // iOS 13+ appearance
     if (@available(iOS 13.0, *)) {
         id tabBarApClass = NSClassFromString(@"UITabBarAppearance");
         if (tabBarApClass) {
@@ -92,12 +89,10 @@ static void lg_applyGlassToTabBar(UITabBar *bar) {
         }
     }
 
-    // 移除旧的
     for (UIView *v in bar.subviews) {
         if (v.tag == 7788) [v removeFromSuperview];
     }
 
-    // 创建毛玻璃
     UIBlurEffect *effect = [UIBlurEffect effectWithStyle:UIBlurEffectStyleSystemThinMaterial];
     UIVisualEffectView *glass = [[UIVisualEffectView alloc] initWithEffect:effect];
     glass.tag = 7788;
@@ -125,7 +120,6 @@ static void lg_applyGlassToNavBar(UINavigationBar *bar) {
     if (lg_isiOS26()) return;
     if (lg_cfg.intensity <= 0.01) return;
 
-    // 清空背景
     bar.backgroundColor = UIColor.clearColor;
     bar.tintColor = UIColor.clearColor;
     bar.opaque = NO;
@@ -135,7 +129,6 @@ static void lg_applyGlassToNavBar(UINavigationBar *bar) {
     if ([bar respondsToSelector:@selector(setShadowImage:)])
         [(id)bar setShadowImage:[UIImage new]];
 
-    // iOS 13+ appearance
     if (@available(iOS 13.0, *)) {
         id navBarApClass = NSClassFromString(@"UINavigationBarAppearance");
         if (navBarApClass) {
@@ -155,12 +148,10 @@ static void lg_applyGlassToNavBar(UINavigationBar *bar) {
         }
     }
 
-    // 移除旧的
     for (UIView *v in bar.subviews) {
         if (v.tag == 7789) [v removeFromSuperview];
     }
 
-    // 创建毛玻璃
     UIBlurEffect *effect = [UIBlurEffect effectWithStyle:UIBlurEffectStyleSystemThinMaterial];
     UIVisualEffectView *glass = [[UIVisualEffectView alloc] initWithEffect:effect];
     glass.tag = 7789;
@@ -177,7 +168,7 @@ static void lg_applyGlassToNavBar(UINavigationBar *bar) {
 }
 
 // ========================
-// 底栏（UITabBar）— 仅 hook didMoveToWindow，不 hook layoutSubviews
+// 底栏
 // ========================
 %hook UITabBar
 
@@ -185,8 +176,6 @@ static void lg_applyGlassToNavBar(UINavigationBar *bar) {
     %orig;
     if (!lg_cfg.enabled || !lg_cfg.tabBarEnabled) return;
 
-    // 关键修复：延迟 2 秒执行，等微信启动完成后再应用效果
-    // 避免在 scene-create 阶段做重操作导致 Watchdog 杀进程
     __weak UITabBar *weakBar = self;
     dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(2.0 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
         UITabBar *bar = weakBar;
@@ -199,7 +188,7 @@ static void lg_applyGlassToNavBar(UINavigationBar *bar) {
 %end
 
 // ========================
-// 顶栏（UINavigationBar）— 仅 hook didMoveToWindow
+// 顶栏
 // ========================
 %hook UINavigationBar
 
@@ -207,7 +196,6 @@ static void lg_applyGlassToNavBar(UINavigationBar *bar) {
     %orig;
     if (!lg_cfg.enabled || !lg_cfg.navBarEnabled) return;
 
-    // 关键修复：延迟 2 秒执行
     __weak UINavigationBar *weakBar = self;
     dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(2.0 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
         UINavigationBar *bar = weakBar;
