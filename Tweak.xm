@@ -1,7 +1,6 @@
 #import <UIKit/UIKit.h>
 #import <Foundation/Foundation.h>
 #import <rootless.h>
-#include <objc/runtime.h>
 
 // ========================
 // 偏好读写
@@ -169,88 +168,74 @@ static void lg_applyNav(UINavigationBar *bar) {
 %end
 
 // ========================
-// 微信内设置入口
+// 微信内设置入口（纯 target-action，不用 associated object）
 // ========================
-@interface UIView (LGRow)
-- (void)lg_tapped;
-@end
-@implementation UIView (LGRow)
-- (void)lg_tapped {
-    UISwitch *sw = objc_getAssociatedObject(self, @selector(sw));
-    void (^blk)(BOOL) = (__bridge void (^)(BOOL))objc_getAssociatedObject(self, @selector(blk));
-    if (sw && blk) { BOOL n = !sw.isOn; sw.on = n; blk(n); }
-}
-@end
+%hook UIViewController
 
-static UIView *lg_row(BOOL on, void (^blk)(BOOL)) {
+%new
+- (void)lg_toggleChanged:(UISwitch *)sender {
+    NSMutableDictionary *p = [[NSMutableDictionary alloc] initWithContentsOfFile:lg_prefPath()];
+    if (!p) p = [NSMutableDictionary dictionary];
+    p[@"enabled"] = @(sender.isOn);
+    [p writeToFile:lg_prefPath() atomically:YES];
+    lg_loadPrefs();
+    _lg_notify_impl();
+}
+
+- (void)viewWillAppear:(BOOL)animated {
+    %orig;
+    NSString *t = self.title ?: @"";
+    if (![t isEqualToString:@"设置"] && ![t isEqualToString:@"設定"] && ![t isEqualToString:@"Settings"]) return;
+
+    UITableView *tv = nil;
+    if ([self isKindOfClass:%c(UITableViewController)]) tv = [(id)self tableView];
+    else if ([self respondsToSelector:@selector(tableView)]) tv = [self valueForKey:@selector(tableView)];
+    if (!tv) return;
+    if ([tv tableHeaderView] && [tv tableHeaderView].tag == 9901) return;
+
     CGFloat w = [UIScreen mainScreen].bounds.size.width;
+    UIView *container = [[UIView alloc] initWithFrame:CGRectMake(0, 0, w, 44)];
+    container.tag = 9901;
+
+    if (@available(iOS 13.0, *)) {
+        container.backgroundColor = UIColor.systemGroupedBackgroundColor;
+    } else {
+        container.backgroundColor = [UIColor colorWithRed:0.95 green:0.95 blue:0.95 alpha:1];
+    }
+
+    // 创建行
     UIView *row = [[UIView alloc] initWithFrame:CGRectMake(0, 0, w, 44)];
     if (@available(iOS 13.0, *)) {
         row.backgroundColor = UIColor.systemBackgroundColor;
     } else {
         row.backgroundColor = UIColor.whiteColor;
     }
-    
+
     UILabel *lbl = [[UILabel alloc] initWithFrame:CGRectMake(16, 0, w - 90, 44)];
     lbl.text = @"液态玻璃"; lbl.font = [UIFont systemFontOfSize:16];
     lbl.textColor = UIColor.labelColor ?: UIColor.blackColor;
     [row addSubview:lbl];
-    
+
     UISwitch *sw = [[UISwitch alloc] init];
-    sw.on = on; sw.center = CGPointMake(w - 32, 22);
+    sw.on = lg_cfg.enabled;
+    [sw addTarget:self action:@selector(lg_toggleChanged:) forControlEvents:UIControlEventValueChanged];
+    sw.center = CGPointMake(w - 32, 22);
     [row addSubview:sw];
-    
+
     UIView *sep = [[UIView alloc] initWithFrame:CGRectMake(16, 43.5, w - 32, 0.5)];
     sep.backgroundColor = [UIColor.grayColor colorWithAlphaComponent:0.35];
     sep.autoresizingMask = UIViewAutoresizingFlexibleWidth;
     [row addSubview:sep];
-    
-    objc_setAssociatedObject(row, @selector(sw), sw, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
-    objc_setAssociatedObject(row, @selector(blk), (__bridge id)blk, OBJC_ASSOCIATION_COPY);
-    row.userInteractionEnabled = YES;
-    [row addGestureRecognizer:[[UITapGestureRecognizer alloc] initWithTarget:row action:@selector(lg_tapped)]];
-    return row;
-}
 
-%hook UIViewController
-- (void)viewWillAppear:(BOOL)animated {
-    %orig;
-    NSString *t = self.title ?: @"";
-    if (![t isEqualToString:@"设置"] && ![t isEqualToString:@"設定"] && ![t isEqualToString:@"Settings"]) return;
-    
-    UITableView *tv = nil;
-    if ([self isKindOfClass:%c(UITableViewController)]) tv = [(id)self tableView];
-    else if ([self respondsToSelector:@selector(tableView)]) tv = [self valueForKey:@"tableView"];
-    if (!tv) return;
-    if ([tv tableHeaderView] && [tv tableHeaderView].tag == 9901) return;
-
-    CGFloat w = [UIScreen mainScreen].bounds.size.width;
-    UIView *box = [[UIView alloc] initWithFrame:CGRectMake(0, 0, w, 44)];
-    box.tag = 9901;
-    
-    if (@available(iOS 13.0, *)) {
-        box.backgroundColor = UIColor.systemGroupedBackgroundColor;
-    } else {
-        box.backgroundColor = [UIColor colorWithRed:0.95 green:0.95 blue:0.95 alpha:1];
-    }
-
-    UIView *r = lg_row(lg_cfg.enabled, ^(BOOL on) {
-        NSMutableDictionary *p = lg_readPrefs();
-        p[@"enabled"] = @(on);
-        lg_writePrefs(p);
-        _lg_notify_impl();
-    });
-    r.frame = CGRectMake(0, 0, w, 44);
-    r.autoresizingMask = UIViewAutoresizingFlexibleWidth;
-    [box addSubview:r];
+    [container addSubview:row];
 
     UIView *old = [tv tableHeaderView];
     if (old) {
         old.frame = CGRectMake(0, 44, w, old.bounds.size.height);
         old.autoresizingMask = UIViewAutoresizingFlexibleWidth;
-        [box addSubview:old];
-        box.frame = CGRectMake(0, 0, w, 44 + old.bounds.size.height);
+        [container addSubview:old];
+        container.frame = CGRectMake(0, 0, w, 44 + old.bounds.size.height);
     }
-    [tv setTableHeaderView:box];
+    [tv setTableHeaderView:container];
 }
 %end
