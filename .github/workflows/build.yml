@@ -11,6 +11,13 @@ jobs:
       - name: Checkout source
         uses: actions/checkout@v4
 
+      - name: Install Homebrew & ldid
+        run: |
+          /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+          echo 'eval "$(/opt/homebrew/bin/brew shellenv)"' >> ~/.zshrc
+          eval "$(/opt/homebrew/bin/brew shellenv)"
+          brew install ldid
+
       - name: Install Theos
         run: |
           git clone --recursive https://github.com/theos/theos.git $HOME/theos
