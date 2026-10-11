@@ -28,6 +28,7 @@ static void WXLApplyGlassStyle(CCLiquidGlassView *glass) {
 
 // 隐藏系统/微信自带的栏背景，跳过我们自己的玻璃
 static void WXLHideSystemBarBackground(UIView *bar) {
+    if (!bar) return;
     for (UIView *sub in bar.subviews) {
         if ([sub isKindOfClass:[CCLiquidGlassView class]]) continue;
         if ([sub isKindOfClass:[UIVisualEffectView class]]) {
@@ -44,7 +45,7 @@ static void WXLHideSystemBarBackground(UIView *bar) {
     }
 }
 
-// 挂载导航栏玻璃（接受任意 UIView）
+// 挂载导航栏玻璃
 static void WXLAttachNavBarGlass(UIView *bar) {
     if (!bar) return;
     CCLiquidGlassView *glass = (CCLiquidGlassView *)[bar viewWithTag:WXLGlassNavTag];
@@ -60,7 +61,7 @@ static void WXLAttachNavBarGlass(UIView *bar) {
     WXLApplyGlassStyle(glass);
 }
 
-// 挂载底栏玻璃（接受任意 UIView）
+// 挂载底栏玻璃
 static BOOL WXLAttachTabBarGlass(UIView *bar) {
     if (!bar) return NO;
     if (!WXLDefaultsBool(WXLTabBarEnabledKey, WXLDefaultTabBarEnabled)) {
@@ -89,8 +90,9 @@ static BOOL WXLAttachTabBarGlass(UIView *bar) {
 - (void)layoutSubviews {
     %orig;
     NSLog(@"[WXL] UINavigationBar hit");
-    WXLHideSystemBarBackground(self);
-    WXLAttachNavBarGlass(self);
+    UIView *bar = (UIView *)self;
+    WXLHideSystemBarBackground(bar);
+    WXLAttachNavBarGlass(bar);
 }
 %end
 
@@ -101,20 +103,22 @@ static BOOL WXLAttachTabBarGlass(UIView *bar) {
 - (void)layoutSubviews {
     %orig;
     NSLog(@"[WXL] UITabBar hit");
-    WXLHideSystemBarBackground(self);
-    WXLAttachTabBarGlass(self);
+    UIView *bar = (UIView *)self;
+    WXLHideSystemBarBackground(bar);
+    WXLAttachTabBarGlass(bar);
 }
 %end
 
 // =====================================================================
-// Hook：微信自定义底栏（多个可能的类名）
+// Hook：微信自定义底栏
 // =====================================================================
 %hook LauncherUIBottomTabView
 - (void)layoutSubviews {
     %orig;
     NSLog(@"[WXL] LauncherUIBottomTabView hit");
-    WXLHideSystemBarBackground(self);
-    WXLAttachTabBarGlass(self);
+    UIView *bar = (UIView *)self;
+    WXLHideSystemBarBackground(bar);
+    WXLAttachTabBarGlass(bar);
 }
 %end
 
@@ -122,20 +126,22 @@ static BOOL WXLAttachTabBarGlass(UIView *bar) {
 - (void)layoutSubviews {
     %orig;
     NSLog(@"[WXL] MMTabBar hit");
-    WXLHideSystemBarBackground(self);
-    WXLAttachTabBarGlass(self);
+    UIView *bar = (UIView *)self;
+    WXLHideSystemBarBackground(bar);
+    WXLAttachTabBarGlass(bar);
 }
 %end
 
 // =====================================================================
-// Hook：微信自定义导航栏背景（多个可能的类名）
+// Hook：微信自定义导航栏背景
 // =====================================================================
 %hook WXLGNavBarBackgroundView
 - (void)layoutSubviews {
     %orig;
     NSLog(@"[WXL] WXLGNavBarBackgroundView hit");
-    WXLHideSystemBarBackground(self);
-    WXLAttachNavBarGlass(self);
+    UIView *bar = (UIView *)self;
+    WXLHideSystemBarBackground(bar);
+    WXLAttachNavBarGlass(bar);
 }
 %end
 
@@ -143,8 +149,9 @@ static BOOL WXLAttachTabBarGlass(UIView *bar) {
 - (void)layoutSubviews {
     %orig;
     NSLog(@"[WXL] WCNavBarBackgroundView hit");
-    WXLHideSystemBarBackground(self);
-    WXLAttachNavBarGlass(self);
+    UIView *bar = (UIView *)self;
+    WXLHideSystemBarBackground(bar);
+    WXLAttachNavBarGlass(bar);
 }
 %end
 
