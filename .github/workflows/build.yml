@@ -7,8 +7,6 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    env:
-      THEOS: $HOME/theos
     steps:
       - name: Checkout source
         uses: actions/checkout@v4
@@ -24,13 +22,16 @@ jobs:
           sudo apt update
           sudo apt install -y bash curl git make perl xz-utils ca-certificates
 
-      - name: Install Theos (official script, only run when cache miss)
+      - name: Install Theos official script (cache miss)
         if: steps.cache.outputs.cache-hit != 'true'
         run: |
           bash -c "$(curl -fsSL https://raw.githubusercontent.com/theos/theos/master/bin/install-theos)"
 
-      - name: Build tweak
-        run: make package FINALPACKAGE=1
+      # ✅ 编译时手动传入 THEOS 变量给 make
+      - name: Build Tweak
+        run: |
+          export THEOS=$HOME/theos
+          make package FINALPACKAGE=1
 
       - name: Upload deb
         uses: actions/upload-artifact@v4
