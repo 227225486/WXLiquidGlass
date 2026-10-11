@@ -13,19 +13,16 @@ jobs:
 
       - name: Setup Theos + ldid
         run: |
-          # 不存在才克隆theos
           if [ ! -d "$HOME/theos" ]; then
             git clone --recursive https://github.com/theos/theos.git $HOME/theos
           fi
-          # 下载ldid
-          curl -L -o ldid https://github.com/theos/ldid/releases/latest/download/ldid-macos
+          # 固定版本ldid-macos二进制，不再用latest跳转
+          curl -L -o ldid https://github.com/theos/ldid/releases/download/v2.1.5/ldid-macos
           chmod +x ldid
           mkdir -p $HOME/theos/bin
           mv ldid $HOME/theos/bin/
-          # 一次性设置环境变量，当前shell直接生效
           export THEOS=$HOME/theos
           export PATH="$THEOS/bin:$PATH"
-          # 直接在这里打包，变量全程有效
           make package
 
       - name: Upload deb artifact
