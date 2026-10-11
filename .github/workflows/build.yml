@@ -9,7 +9,7 @@ jobs:
     runs-on: ubuntu-latest
     container: debian:latest
     env:
-      THEOS: /root/theos
+      THEOS: /home/builder/theos
     steps:
       - name: Checkout source
         uses: actions/checkout@v4
@@ -17,26 +17,31 @@ jobs:
       - name: Cache Theos
         uses: actions/cache@v4
         with:
-          path: /root/theos
+          path: /home/builder/theos
           key: debian-theos-v1
 
       - name: Install debian dependencies
         run: |
           apt update
-          apt install -y bash curl git make perl xz-utils ca-certificates
+          apt install -y bash curl git make perl xz-utils ca-certificates sudo
+          # 创建普通用户 builder
+          useradd -m builder
+          usermod -aG sudo builder
+          echo "builder ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
 
-      - name: Install Theos via jsdelivr mirror
+      - name: Install Theos (non-root builder user)
         if: steps.cache.outputs.cache-hit != 'true'
         run: |
-          curl -fsSL https://cdn.jsdelivr.net/gh/theos/theos@master/bin/install-theos > install-theos.sh
-          chmod +x install-theos.sh
-          bash install-theos.sh
+          su - builder -c "curl -fsSL https://cdn.jsdelivr.net/gh/theos/theos@master/bin/install-theos > ~/install-theos.sh; chmod +x ~/install-theos.sh; bash ~/install-theos.sh"
 
-      - name: Build tweak
+      - name: Build tweak as builder
         run: |
-          export THEOS=/root/theos
-          export PATH="$THEOS/bin:$PATH"
-          make package FINALPACKAGE=1
+          su - builder -c "
+            export THEOS=/home/builder/theos
+            export PATH=\$THEOS/bin:\$PATH
+            cd $GITHUB_WORKSPACE
+            make package FINALPACKAGE=1
+          "
 
       - name: Upload deb
         uses: actions/upload-artifact@v4
