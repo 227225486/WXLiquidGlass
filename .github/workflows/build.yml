@@ -11,23 +11,29 @@ jobs:
       - name: Checkout source
         uses: actions/checkout@v4
 
-      - name: Cache Theos
+      - name: Cache Theos + SDK
         uses: actions/cache@v4
         with:
           path: ~/theos
-          key: ubuntu-theos-v5
+          key: ubuntu-theos-sdk-v1
 
       - name: Install system dependencies
         run: |
           sudo apt update
-          sudo apt install -y bash curl git make perl xz-utils ca-certificates
+          sudo apt install -y bash curl git make perl xz-utils ca-certificates unzip
 
       - name: Install Theos official script (cache miss)
         if: steps.cache.outputs.cache-hit != 'true'
         run: |
           bash -c "$(curl -fsSL https://raw.githubusercontent.com/theos/theos/master/bin/install-theos)"
 
-      # ✅ 编译时手动传入 THEOS 变量给 make
+      # ✅ 新增：下载iOS 15 SDK，这就是缺失的关键一步
+      - name: Install iOS 15 SDK
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: |
+          export THEOS=$HOME/theos
+          $THEOS/bin/install-sdk 15.0
+
       - name: Build Tweak
         run: |
           export THEOS=$HOME/theos
