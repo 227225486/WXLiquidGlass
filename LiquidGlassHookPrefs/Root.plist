@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>title</key><string>Liquid Glass Hook</string>
+    <key>items</key>
+    <array>
+        <dict>
+            <key>cell</key><string>PSGroupCell</string>
+            <key>label</key><string>主控制</string>
+            <key>footerText</key><string>关闭后所有效果立即停止，微信恢复默认样式。</string>
+        </dict>
+        <dict>
+            <key>cell</key><string>PSSwitchCell</string>
+            <key>default</key><true/>
+            <key>defaults</key><string>com.k.liquidglasshook</string>
+            <key>key</key><string>enabled</string>
+            <key>label</key><string>启用液态玻璃</string>
+            <key>PostNotification</key><string>com.k.liquidglasshook/reload</string>
+        </dict>
+        <dict>
+            <key>cell</key><string>PSGroupCell</string>
+            <key>label</key><string>作用区域</string>
+        </dict>
+        <dict>
+            <key>cell</key><string>PSSwitchCell</string>
+            <key>default</key><true/>
+            <key>defaults</key><string>com.k.liquidglasshook</string>
+            <key>key</key><string>tabBarEnabled</string>
+            <key>label</key><string>底部 TabBar</string>
+            <key>PostNotification</key><string>com.k.liquidglasshook/reload</string>
+        </dict>
+        <dict>
+            <key>cell</key><string>PSSwitchCell</string>
+            <key>default</key><true/>
+            <key>defaults</key><string>com.k.liquidglasshook</string>
+            <key>key</key><string>navBarEnabled</string>
+            <key>label</key><string>顶部导航栏</string>
+            <key>PostNotification</key><string>com.k.liquidglasshook/reload</string>
+        </dict>
+        <dict>
+            <key>cell</key><string>PSGroupCell</string>
+            <key>label</key><string>效果强度</string>
+            <key>footerText</key><string>仅 iOS 26 以下生效。值越大磨砂越重，设为 0 则完全透明。</string>
+        </dict>
+        <dict>
+            <key>cell</key><string>PSSliderCell</string>
+            <key>default</key><real>0.7</real>
+            <key>defaults</key><string>com.k.liquidglasshook</string>
+            <key>key</key><string>intensity</string>
+            <key>min</key><real>0</real>
+            <key>max</key><real>1</real>
+            <key>showValue</key><true/>
+            <key>isSegmented</key><false/>
+            <key>PostNotification</key><string>com.k.liquidglasshook/reload</string>
+        </dict>
+        <dict>
+            <key>cell</key><string>PSGroupCell</string>
+            <key>footerAlignment</key><integer>1</integer>
+            <key>footerText</key><string>LiquidGlassHook v1.1 · iOS 26+ 使用苹果原生液态玻璃</string>
+        </dict>
+    </array>
+</dict>
+</plist>
