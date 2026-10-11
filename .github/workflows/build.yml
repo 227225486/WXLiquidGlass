@@ -8,31 +8,16 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout source
+      - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup Theos + ldid + iOS SDK
-        run: |
-          if [ ! -d "$HOME/theos" ]; then
-            git clone --recursive https://github.com/theos/theos.git $HOME/theos
-          fi
-          export THEOS=$HOME/theos
-          export PATH="$THEOS/bin:$PATH"
-          # 下载linux版ldid
-          curl -L -o ldid https://github.com/theos/ldid/releases/download/v2.1.5/ldid-linux
-          chmod +x ldid
-          mv ldid $HOME/theos/bin/
-          # 直接下载theos官方预编译SDK，不使用nic
-          mkdir -p $THEOS/sdks
-          cd $THEOS/sdks
-          curl -L -o sdk.zip https://github.com/theos/sdks/archive/refs/heads/master.zip
-          unzip -q sdk.zip
-          mv sdks-master/* ./
-          rm -rf sdks-master sdk.zip
-          cd $GITHUB_WORKSPACE
-          make package
+      - name: Setup Theos (自动安装toolchain、SDK、ldid)
+        uses: theos/setup-theos@v1
 
-      - name: Upload deb artifact
+      - name: Build Tweak
+        run: make package
+
+      - name: Upload deb
         uses: actions/upload-artifact@v4
         with:
           path: debs/*.deb
