@@ -10,31 +10,38 @@ jobs:
     env:
       THEOS: $HOME/theos
     steps:
-      - name: Checkout
+      - name: Checkout source
         uses: actions/checkout@v4
 
       - name: Cache Theos
         uses: actions/cache@v4
         with:
           path: ~/theos
-          key: macos-theos-v2
+          key: macos-theos-v3
 
-      - name: Install Homebrew
+      - name: Install Homebrew dependencies
         run: |
-          /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-          echo 'eval "$(/opt/homebrew/bin/brew shellenv)"' >> ~/.zshrc
-          eval "$(/opt/homebrew/bin/brew shellenv)"
+          brew install git make perl
+        shell: bash
 
-      - name: Install Theos
+      - name: Install Theos (only cache miss)
         if: steps.cache.outputs.cache-hit != 'true'
         run: |
           bash -c "$(curl -fsSL https://raw.githubusercontent.com/theos/theos/master/bin/install-theos)"
+        shell: bash
 
-      # ====== 删掉 install-sdk！macOS不需要，直接读取Xcode苹果SDK ======
+      - name: Debug print THEOS path and list files
+        run: |
+          export THEOS=$HOME/theos
+          echo "THEOS=$THEOS"
+          ls -la $THEOS/makefiles/ || echo "makefiles folder missing, Theos install failed!"
+        shell: bash
+
       - name: Build Tweak
         run: |
           export THEOS=$HOME/theos
           make package FINALPACKAGE=1
+        shell: bash
 
       - name: Upload deb
         uses: actions/upload-artifact@v4
