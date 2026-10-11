@@ -1,9 +1,0 @@
-Package: com.wxliquidglass.wxglass
-Name: WXLiquidGlass
-Version: 2.0.0
-Architecture: iphoneos-arm64
-Description: 微信液态玻璃美化插件（iOS 26 Liquid Glass）
-Maintainer: WXLiquidGlass
-Author: WXLiquidGlass
-Section: Tweaks
-Depends: mobilesubstrate (>= 0.9.5000) | ellekit (>= 1.0)
