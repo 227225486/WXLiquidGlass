@@ -2,42 +2,27 @@
 //  CCLiquidGlassSettingsViewController.m
 //  WXLiquidGlass
 //
-//  设置页实现：分组 UITableView + 四个 UISwitch
-//  开关值通过 NSUserDefaults 持久化，键名前缀 wxl_
-//
 
 #import "CCLiquidGlassSettingsViewController.h"
 
-// ---------------------------------------------------------------------
-// 键名常量定义（与头文件声明对应，链接时供 Tweak.x 共用）
-// ---------------------------------------------------------------------
 NSString * const WXLTransparentModeKey    = @"wxl_transparentMode";
 NSString * const WXLChatBubbleEnabledKey  = @"wxl_chatBubbleEnabled";
 NSString * const WXLTabBarEnabledKey      = @"wxl_tabBarEnabled";
 NSString * const WXLGradientTopKey        = @"wxl_gradientTop";
 
-// ---------------------------------------------------------------------
-// 类扩展
-// ---------------------------------------------------------------------
 @interface CCLiquidGlassSettingsViewController () <UITableViewDataSource, UITableViewDelegate>
-
-@property (nonatomic, strong) UISwitch *transparentSwitch;  // 透明模式
-@property (nonatomic, strong) UISwitch *bubbleSwitch;       // 气泡开关
-@property (nonatomic, strong) UISwitch *tabBarSwitch;       // 底栏总开关
-@property (nonatomic, strong) UISwitch *gradientSwitch;     // 渐变顶部
-
+@property (nonatomic, strong) UISwitch *transparentSwitch;
+@property (nonatomic, strong) UISwitch *bubbleSwitch;
+@property (nonatomic, strong) UISwitch *tabBarSwitch;
+@property (nonatomic, strong) UISwitch *gradientSwitch;
 @end
 
 @implementation CCLiquidGlassSettingsViewController
 
-#pragma mark - 生命周期
-
 - (void)viewDidLoad {
     [super viewDidLoad];
-
     self.title = @"液态玻璃";
 
-    // 使用分组风格表格
     self.tableView = [[UITableView alloc] initWithFrame:self.view.bounds
                                                   style:UITableViewStyleInsetGrouped];
     self.tableView.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
@@ -45,7 +30,6 @@ NSString * const WXLGradientTopKey        = @"wxl_gradientTop";
     self.tableView.delegate = self;
     [self.tableView registerClass:[UITableViewCell class] forCellReuseIdentifier:@"Cell"];
 
-    // 右上角"完成"关闭按钮
     self.navigationItem.rightBarButtonItem =
         [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemDone
                                                       target:self
@@ -59,9 +43,7 @@ NSString * const WXLGradientTopKey        = @"wxl_gradientTop";
 - (UISwitch *)transparentSwitch {
     if (!_transparentSwitch) {
         _transparentSwitch = [[UISwitch alloc] init];
-        [_transparentSwitch addTarget:self
-                               action:@selector(switchChanged:)
-                     forControlEvents:UIControlEventValueChanged];
+        [_transparentSwitch addTarget:self action:@selector(switchChanged:) forControlEvents:UIControlEventValueChanged];
     }
     return _transparentSwitch;
 }
@@ -69,9 +51,7 @@ NSString * const WXLGradientTopKey        = @"wxl_gradientTop";
 - (UISwitch *)bubbleSwitch {
     if (!_bubbleSwitch) {
         _bubbleSwitch = [[UISwitch alloc] init];
-        [_bubbleSwitch addTarget:self
-                          action:@selector(switchChanged:)
-                forControlEvents:UIControlEventValueChanged];
+        [_bubbleSwitch addTarget:self action:@selector(switchChanged:) forControlEvents:UIControlEventValueChanged];
     }
     return _bubbleSwitch;
 }
@@ -79,9 +59,7 @@ NSString * const WXLGradientTopKey        = @"wxl_gradientTop";
 - (UISwitch *)tabBarSwitch {
     if (!_tabBarSwitch) {
         _tabBarSwitch = [[UISwitch alloc] init];
-        [_tabBarSwitch addTarget:self
-                          action:@selector(switchChanged:)
-                forControlEvents:UIControlEventValueChanged];
+        [_tabBarSwitch addTarget:self action:@selector(switchChanged:) forControlEvents:UIControlEventValueChanged];
     }
     return _tabBarSwitch;
 }
@@ -89,34 +67,23 @@ NSString * const WXLGradientTopKey        = @"wxl_gradientTop";
 - (UISwitch *)gradientSwitch {
     if (!_gradientSwitch) {
         _gradientSwitch = [[UISwitch alloc] init];
-        [_gradientSwitch addTarget:self
-                            action:@selector(switchChanged:)
-                  forControlEvents:UIControlEventValueChanged];
+        [_gradientSwitch addTarget:self action:@selector(switchChanged:) forControlEvents:UIControlEventValueChanged];
     }
     return _gradientSwitch;
 }
 
-#pragma mark - 读写设置
+#pragma mark - 读写
 
 - (void)loadSettings {
     NSUserDefaults *d = [NSUserDefaults standardUserDefaults];
-
-    self.transparentSwitch.on =
-        [d objectForKey:WXLTransparentModeKey] ? [d boolForKey:WXLTransparentModeKey] : WXLDefaultTransparentMode;
-
-    self.bubbleSwitch.on =
-        [d objectForKey:WXLChatBubbleEnabledKey] ? [d boolForKey:WXLChatBubbleEnabledKey] : WXLDefaultChatBubbleEnabled;
-
-    self.tabBarSwitch.on =
-        [d objectForKey:WXLTabBarEnabledKey] ? [d boolForKey:WXLTabBarEnabledKey] : WXLDefaultTabBarEnabled;
-
-    self.gradientSwitch.on =
-        [d objectForKey:WXLGradientTopKey] ? [d boolForKey:WXLGradientTopKey] : WXLDefaultGradientTop;
+    self.transparentSwitch.on = [d objectForKey:WXLTransparentModeKey] ? [d boolForKey:WXLTransparentModeKey] : WXLDefaultTransparentMode;
+    self.bubbleSwitch.on      = [d objectForKey:WXLChatBubbleEnabledKey] ? [d boolForKey:WXLChatBubbleEnabledKey] : WXLDefaultChatBubbleEnabled;
+    self.tabBarSwitch.on      = [d objectForKey:WXLTabBarEnabledKey] ? [d boolForKey:WXLTabBarEnabledKey] : WXLDefaultTabBarEnabled;
+    self.gradientSwitch.on    = [d objectForKey:WXLGradientTopKey] ? [d boolForKey:WXLGradientTopKey] : WXLDefaultGradientTop;
 }
 
 - (void)switchChanged:(UISwitch *)sender {
     NSUserDefaults *d = [NSUserDefaults standardUserDefaults];
-
     if (sender == self.transparentSwitch) {
         [d setBool:sender.on forKey:WXLTransparentModeKey];
     } else if (sender == self.bubbleSwitch) {
@@ -126,7 +93,6 @@ NSString * const WXLGradientTopKey        = @"wxl_gradientTop";
     } else if (sender == self.gradientSwitch) {
         [d setBool:sender.on forKey:WXLGradientTopKey];
     }
-
     [d synchronize];
 }
 
@@ -138,17 +104,15 @@ NSString * const WXLGradientTopKey        = @"wxl_gradientTop";
     }
 }
 
-#pragma mark - UITableViewDataSource
+#pragma mark - UITableView
 
-- (NSInteger)numberOfSectionsInTableView:(UITableView *)tableView {
-    return 3;
-}
+- (NSInteger)numberOfSectionsInTableView:(UITableView *)tableView { return 3; }
 
 - (NSInteger)tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section {
     switch (section) {
-        case 0: return 2; // 导航栏：透明模式、渐变顶部
-        case 1: return 1; // 底部 TabBar：底栏总开关
-        case 2: return 1; // 聊天气泡：气泡开关
+        case 0: return 2;
+        case 1: return 1;
+        case 2: return 1;
         default: return 0;
     }
 }
@@ -163,9 +127,7 @@ NSString * const WXLGradientTopKey        = @"wxl_gradientTop";
 }
 
 - (NSString *)tableView:(UITableView *)tableView titleForFooterInSection:(NSInteger)section {
-    if (section == 2) {
-        return @"开关即时生效，回到聊天界面查看效果。";
-    }
+    if (section == 2) return @"开关即时生效，回到聊天界面查看效果。";
     return nil;
 }
 
@@ -190,7 +152,6 @@ NSString * const WXLGradientTopKey        = @"wxl_gradientTop";
         cell.textLabel.text = @"气泡开关";
         cell.accessoryView = self.bubbleSwitch;
     }
-
     return cell;
 }
 
