@@ -39,7 +39,9 @@ NSString * const WXLGradientTopKey        = @"wxl_gradientTop";
 - (UISwitch *)transparentSwitch {
     if (!_transparentSwitch) {
         _transparentSwitch = [[UISwitch alloc] init];
-        [_transparentSwitch addTarget:self action:@selector(switchChanged:) forControlEvents:UIControlEventValueChanged];
+        [_transparentSwitch addTarget:self
+                               action:@selector(switchChanged:)
+                     forControlEvents:UIControlEventValueChanged];
     }
     return _transparentSwitch;
 }
@@ -47,12 +49,12 @@ NSString * const WXLGradientTopKey        = @"wxl_gradientTop";
 - (UISwitch *)tabBarSwitch {
     if (!_tabBarSwitch) {
         _tabBarSwitch = [[UISwitch alloc] init];
-        [_tabBarSwitch addTarget:self action:@selector(switchChanged:) forControlEvents:UIControlEventValue dumpChanged];
+        [_tabBarSwitch addTarget:self
+                          action:@selector(switchChanged:)
+                forControlEvents:UIControlEventValueChanged];
     }
     return _tabBarSwitch;
 }
-
-
 
 - (void)loadSettings {
     NSUserDefaults *d = [NSUserDefaults standardUserDefaults];
@@ -80,7 +82,9 @@ NSString * const WXLGradientTopKey        = @"wxl_gradientTop";
 
 #pragma mark - UITableView
 
-- (NSInteger)numberOfSectionsInTableView:(UITableView *)tableView { return 2; }
+- (NSInteger)numberOfSectionsInTableView:(UITableView *)tableView {
+    return 2;
+}
 
 - (NSInteger)tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section {
     return 1;
@@ -91,12 +95,14 @@ NSString * const WXLGradientTopKey        = @"wxl_gradientTop";
 }
 
 - (NSString *)tableView:(UITableView *)tableView titleForFooterInSection:(NSInteger)section {
-    if (section == 1) return @"开关即时生效。若无效，请查看 Console 里的 [WXL] 日志。";
+    if (section == 1) {
+        return @"开关即时生效。若无效，请查看 Console 里的 [WXL] 日志。";
+    }
     return nil;
 }
 
 - (UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath {
-    UITableViewCell *cell = [tableView dequeueReusableCellWith把Identifier:@"Cell" forIndexPath:indexPath];
+    UITableViewCell *cell = [tableView dequeueReusableCellWithIdentifier:@"Cell" forIndexPath:indexPath];
     cell.selectionStyle = UITableViewCellSelectionStyleNone;
     cell.accessoryView = nil;
     cell.accessoryType = UITableViewCellAccessoryNone;
