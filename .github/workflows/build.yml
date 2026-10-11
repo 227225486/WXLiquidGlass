@@ -7,19 +7,36 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    container: debian:latest
+    env:
+      THEOS: /root/theos
     steps:
       - name: Checkout source
         uses: actions/checkout@v4
 
-      - name: Install Theos official script
+      - name: Cache Theos
+        uses: actions/cache@v4
+        with:
+          path: /root/theos
+          key: debian-theos-v1
+
+      - name: Install debian dependencies
         run: |
-          sudo apt update
-          sudo apt install -y bash curl git xz-utils
-          # 官方一键安装脚本，自动下载theos、toolchain、SDK、ldid
-          bash -c "$(curl -fsSL https://raw.githubusercontent.com/theos/theos/master/bin/install-theos)"
-          export THEOS=$HOME/theos
+          apt update
+          apt install -y bash curl git make perl xz-utils ca-certificates
+
+      - name: Install Theos via jsdelivr mirror
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: |
+          curl -fsSL https://cdn.jsdelivr.net/gh/theos/theos@master/bin/install-theos > install-theos.sh
+          chmod +x install-theos.sh
+          bash install-theos.sh
+
+      - name: Build tweak
+        run: |
+          export THEOS=/root/theos
           export PATH="$THEOS/bin:$PATH"
-          make package
+          make package FINALPACKAGE=1
 
       - name: Upload deb
         uses: actions/upload-artifact@v4
