@@ -11,11 +11,18 @@ jobs:
       - name: Checkout source
         uses: actions/checkout@v4
 
-      - name: Install Theos & ldid
+      - name: Download prebuilt ldid
+        run: |
+          curl -L -o ldid https://github.com/theos/ldid/releases/latest/download/ldid-macos
+          chmod +x ldid
+          mkdir -p $HOME/theos/bin
+          mv ldid $HOME/theos/bin/
+          export PATH="$HOME/theos/bin:$PATH"
+
+      - name: Install Theos
         run: |
           git clone --recursive https://github.com/theos/theos.git $HOME/theos
           echo "THEOS=$HOME/theos" >> $GITHUB_ENV
-          # 直接使用theos自带ldid，不需要brew
           export PATH="$HOME/theos/bin:$PATH"
 
       - name: Build Tweak
